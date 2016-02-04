@@ -2,7 +2,10 @@
 // Created by Andres on 31/01/16.
 //
 
+#include <unistd.h>
+#include <ctype.h>
 #include "storage_mgr.h"
+
 
 /* manipulating page files */
 void initStorageManager(void) {
@@ -29,7 +32,27 @@ void initStorageManager(void) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC createPageFile(char *fileName) {
-    return 0;
+    FILE *fp;
+
+    //r+ opening in the beginning
+    fp=fopen(fileName, "w");
+
+    //On Error return 0
+
+    if(fp == NULL){
+        return RC_WRITE_FAILED;
+    }
+
+
+    fclose(fp);
+
+    //filling file with \0 bytes
+    if(truncate(fileName,PAGE_SIZE) != 0)
+    {
+        return RC_WRITE_FAILED;
+    }
+
+    return RC_OK;
 }
 
 /*
@@ -56,7 +79,27 @@ RC createPageFile(char *fileName) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
-    return 0;
+    //r+ opening in the beginning
+    FILE *fp=fopen(fileName, "r+");
+
+    if(fp == NULL){
+        return RC_FILE_NOT_FOUND;
+    }
+
+    //totalNumPages
+    int totalNumPAges;
+    fseek(fp, 0L, SEEK_END);
+    totalNumPAges = ftell(fp);
+    totalNumPAges = totalNumPAges/PAGE_SIZE;
+
+    fscanf (fp, "%d", &totalNumPAges);
+
+    //Initializing fHandle with page data.
+    fHandle->totalNumPages=totalNumPAges;
+    fHandle->curPagePos=0;
+    fHandle->fileName=fileName;
+
+    return RC_OK;
 }
 
 /*
@@ -78,7 +121,18 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC closePageFile(SM_FileHandle *fHandle) {
-    return 0;
+
+    FILE *fp=fopen(fHandle->fileName, "r+");
+
+    if(fp == NULL){
+        return RC_FILE_NOT_FOUND;
+    }
+
+    fHandle->totalNumPages=0;
+    fHandle->fileName="";
+    fHandle->curPagePos=0;
+
+    return RC_OK;
 }
 
 /*
@@ -100,7 +154,11 @@ RC closePageFile(SM_FileHandle *fHandle) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC destroyPageFile(char *fileName) {
-    return 0;
+
+    if(remove(fileName) != 0){
+        return RC_FILE_NOT_FOUND;
+    }
+    return RC_OK;
 }
 
 /*
