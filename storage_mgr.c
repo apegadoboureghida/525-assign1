@@ -183,24 +183,41 @@ RC destroyPageFile(char *fileName) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+
+    if(pageNum <1){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+    FILE *fp;
+
+    fp = fopen(fHandle->fileName,"r");
+
+    //Check totalNumPages
+    if(fHandle->totalNumPages<pageNum){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+
+    fsetpos(fp,PAGE_SIZE*(pageNum-1));
+    if(fread(memPage,PAGE_SIZE,1,fp) == 0){
+        return  RC_READ_NON_EXISTING_PAGE;
+    }
+    fclose(fp);
+
+    fHandle->curPagePos=pageNum;
+
+    return RC_OK;
 }
 
 /*
- * Function Name: readBlock
+ * Function Name: getBlockPos
  *
  * Description:
- *      The method reads the pageNum block from a file and stores its content
- *      in the memory pointed to by the memPage page handle.
+ *      Return the current page position in a file
  *
  * Parameters:
- *      int pageNum: Page number
  *      SM_fileHandle *fHandle: Existing file handle
- *      SM_PageHandle memPage: Existing page handle
  *
  * Return:
  *      RC: Returned Code
- *          Should return RC_READ_NON_EXISTING_PAG, if the file has less than pageNum pages.
  *
  * History:
  *      Date        Name            Content
@@ -208,31 +225,139 @@ RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 int getBlockPos(SM_FileHandle *fHandle) {
-    return 0;
+
+    return fHandle->curPagePos;
 }
 
+/*
+ * Function Name: readFirstBlock
+ *
+ * Description:
+ *      Read the first block in a file
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      SM_PageHandle memPage: Existing page handle
+ *
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      01/31/2016  Andres Pegado   Initialization
+ */
 RC readFirstBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+
+    return readBlock(1,fHandle,memPage);
 }
 
+/*
+ * Function Name: readPreviousBlock
+ *
+ * Description:
+ *      Read the previous relative to the curPagePos of the file.
+ *      The curPagePos should be moved to the page that was read.
+ *      If the user tries to read a block before the first page of after the last page of the file,
+ *      the method should return RC_READ_NON_EXISTING_PAGE.
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      SM_PageHandle memPage: Existing page handle
+ *
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      01/31/2016  Andres Pegado   Initialization
+ */
 RC readPreviousBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+
+    return readBlock(fHandle->curPagePos-1,fHandle,memPage);
 }
 
+/*
+ * Function Name: readCurrentBlock
+ *
+ * Description:
+ *      Read the current relative to the curPagePos of the file.
+ *      The curPagePos should be moved to the page that was read.
+ *      If the user tries to read a block before the first page of after the last page of the file,
+ *      the method should return RC_READ_NON_EXISTING_PAGE.
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      SM_PageHandle memPage: Existing page handle
+ *
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      01/31/2016  Andres Pegado   Initialization
+ */
 RC readCurrentBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+
+    return readBlock(fHandle->curPagePos,fHandle,memPage);
 }
 
+/*
+ * Function Name: readNextBlock
+ *
+ * Description:
+ *      Read the next relative to the curPagePos of the file.
+ *      The curPagePos should be moved to the page that was read.
+ *      If the user tries to read a block before the first page of after the last page of the file,
+ *      the method should return RC_READ_NON_EXISTING_PAGE.
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      SM_PageHandle memPage: Existing page handle
+ *
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      01/31/2016  Andres Pegado   Initialization
+ */
 RC readNextBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+    return readBlock(fHandle->curPagePos+1,fHandle,memPage);
 }
 
+/*
+ * Function Name: readNextBlock
+ *
+ * Description:
+ *      Read the last relative to the curPagePos of the file.
+ *      The curPagePos should be moved to the page that was read.
+ *      If the user tries to read a block before the first page of after the last page of the file,
+ *      the method should return RC_READ_NON_EXISTING_PAGE.
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      SM_PageHandle memPage: Existing page handle
+ *
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      01/31/2016  Andres Pegado   Initialization
+ */
 RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+    return readBlock(fHandle->totalNumPages,fHandle,memPage);
 }
 
 RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return 0;
+
+
+    return RC_OK;
 }
 
 RC writeCurrentBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
