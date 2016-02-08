@@ -99,7 +99,6 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     fHandle->fileName=fileName;
     
     fclose(fp);
-
     return RC_OK;
 }
 
