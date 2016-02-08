@@ -132,6 +132,8 @@ RC closePageFile(SM_FileHandle *fHandle) {
     fHandle->totalNumPages=0;
     fHandle->fileName="";
     fHandle->curPagePos=0;
+    
+    fclose(fp);
 
     return RC_OK;
 }
@@ -188,20 +190,17 @@ RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if(pageNum <0){
         return RC_READ_NON_EXISTING_PAGE;
     }
+        //Check totalNumPages
+    if(fHandle->totalNumPages<=pageNum){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
     FILE *fp;
 
     fp = fopen(fHandle->fileName,"r");
-
-    //Check totalNumPages
-    if(fHandle->totalNumPages<=pageNum){
-        fclose(fp);
-        return RC_READ_NON_EXISTING_PAGE;
-    }
-
+    
     fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
 
     if(0 == fread(memPage, sizeof(char), PAGE_SIZE, fp)){
-        printf("entra -->%d",PAGE_SIZE*(pageNum) );
         fclose(fp);
         return  RC_READ_NON_EXISTING_PAGE;
     }
@@ -356,7 +355,7 @@ RC readNextBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
-    return readBlock(fHandle->totalNumPages,fHandle,memPage);
+    return readBlock(fHandle->totalNumPages-1,fHandle,memPage);
 }
 
 /*
@@ -385,13 +384,13 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     }
     FILE *fp;
 
-    fp = fopen(fHandle->fileName,"w");
-
+    
     //Check totalNumPages
     if(fHandle->totalNumPages<pageNum){
-        fclose(fp);
         return RC_WRITE_FAILED;
     }
+
+    fp = fopen(fHandle->fileName,"w");
 
     fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
     if(fwrite(memPage,sizeof(char),sizeof(memPage),fp) == 0){
