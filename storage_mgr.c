@@ -97,6 +97,8 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     fHandle->totalNumPages=totalNumPAges;
     fHandle->curPagePos=0;
     fHandle->fileName=fileName;
+    
+    fclose(fp);
 
     return RC_OK;
 }
