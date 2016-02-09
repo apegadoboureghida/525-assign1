@@ -417,7 +417,7 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     fp = fopen(fHandle->fileName,"w");
 
     fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
-    if(fwrite(memPage,sizeof(char),sizeof(memPage),fp) == 0){
+    if(fwrite(memPage,sizeof(char),PAGE_SIZE,fp) == 0){
         fclose(fp);
         return  RC_WRITE_FAILED;
     }
