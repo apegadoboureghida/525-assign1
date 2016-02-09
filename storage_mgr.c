@@ -86,15 +86,16 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     }
 
     //totalNumPages
-    int totalNumPAges;
+    int totalNumPages;
     fseek(fp, 0L, SEEK_END);
-    totalNumPAges = ftell(fp);
-    totalNumPAges = totalNumPAges/PAGE_SIZE;
+    totalNumPages = ftell(fp);
+    totalNumPages = totalNumPages/PAGE_SIZE;
 
-    fscanf (fp, "%d", &totalNumPAges);
+    fscanf (fp, "%d", &totalNumPages);
 
+    printf("%d",totalNumPages);
     //Initializing fHandle with page data.
-    fHandle->totalNumPages=totalNumPAges;
+    fHandle->totalNumPages=totalNumPages;
     fHandle->curPagePos=0;
     fHandle->fileName=fileName;
     
@@ -157,13 +158,16 @@ RC closePageFile(SM_FileHandle *fHandle) {
  */
 RC destroyPageFile(char *fileName) {
 
-    FILE *fp=fopen(fHandle->fileName, "r");
-    
-    if(fp==NULL)
+    FILE *fp=fopen(fileName, "r");
+
+
+    if(fp==0)
     {
+        printf("file Not found");
         fclose(fp);
         return RC_FILE_NOT_FOUND;
     }
+
 
     if(remove(fileName) != 0){
         return RC_REMOVE_FAILED;
@@ -193,6 +197,10 @@ RC destroyPageFile(char *fileName) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
+
+    if(fHandle->totalNumPages<1){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
 
     if(pageNum <0){
         return RC_READ_NON_EXISTING_PAGE;
@@ -236,6 +244,10 @@ RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
  *      01/31/2016  Andres Pegado   Initialization
  */
 int getBlockPos(SM_FileHandle *fHandle) {
+
+    if(fHandle->totalNumPages<1){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
 
     return fHandle->curPagePos;
 }
@@ -386,9 +398,14 @@ RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  */
 RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
+    if(fHandle->totalNumPages<1){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
+
     if(pageNum <0){
         return RC_WRITE_FAILED;
     }
+
     FILE *fp;
 
     
@@ -404,6 +421,7 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
         fclose(fp);
         return  RC_WRITE_FAILED;
     }
+    printf("writing: %c\n",memPage[0]);
 
     fclose(fp);
 
@@ -417,6 +435,10 @@ RC writeCurrentBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
 }
 
 RC appendEmptyBlock(SM_FileHandle *fHandle) {
+
+    if(fHandle->totalNumPages<1){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
 
     fHandle->totalNumPages = fHandle->totalNumPages+1;
 
@@ -432,6 +454,10 @@ RC appendEmptyBlock(SM_FileHandle *fHandle) {
 }
 
 RC ensureCapacity(int numberOfPages, SM_FileHandle *fHandle) {
+
+    if(fHandle->totalNumPages<1){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
 
     if(numberOfPages > fHandle->totalNumPages){
         fHandle->totalNumPages = numberOfPages;
