@@ -48,7 +48,6 @@ testSinglePageContent(void)
     TEST_CHECK(createPageFile (TESTPF));
     TEST_CHECK(openPageFile (TESTPF, &fh));
     printf("created and opened file\n");
-
     // read next page (Non-exist)
 
     ASSERT_TRUE(readNextBlock (&fh, ph)==RC_READ_NON_EXISTING_PAGE,"Try to read non existing page");
@@ -70,18 +69,21 @@ testSinglePageContent(void)
     TEST_CHECK(writeCurrentBlock(&fh,ph));
     printf("writing first block \n");
 
+    TEST_CHECK(readCurrentBlock (&fh, ph));
+    printf("currentBlock %d\n",fh.curPagePos);
+    for (i=0; i < PAGE_SIZE; i++)
+        ASSERT_TRUE((ph[i] == (i % 10) + '0'), "character in page read from disk is the one we expected.");
+    printf("reading current block\n");
 
     //read previous
     TEST_CHECK(readPreviousBlock (&fh, ph));
 
     //read previous (non-existing)
     ASSERT_TRUE(readPreviousBlock (&fh, ph)== RC_READ_NON_EXISTING_PAGE,"Try to read non existing page");
-
-
     // read back the page containing the string and check that it is correct
 
     TEST_CHECK(readLastBlock (&fh, ph));
-    printf("currentBlock %d\n",fh.curPagePos);
+    printf("readLastBlock %d\n",fh.curPagePos);
     for (i=0; i < PAGE_SIZE; i++)
         ASSERT_TRUE((ph[i] == (i % 10) + '0'), "character in page read from disk is the one we expected.");
     printf("reading last block\n");
@@ -97,7 +99,6 @@ testSinglePageContent(void)
 
     //get position
     TEST_CHECK(getBlockPos(&fh)==3)
-
 
     // destroy new page file
     TEST_CHECK(destroyPageFile (TESTPF));
