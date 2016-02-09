@@ -63,14 +63,12 @@ testSinglePageContent(void)
     printf("next block was empty\n");
 
     // change ph to be a string and write that one to disk
-    printf("currentBlock %d\n",fh.curPagePos);
     for (i=0; i < PAGE_SIZE; i++)
         ph[i] = (i % 10) + '0';
     TEST_CHECK(writeCurrentBlock(&fh,ph));
     printf("writing first block \n");
 
     TEST_CHECK(readCurrentBlock (&fh, ph));
-    printf("currentBlock %d\n",fh.curPagePos);
     for (i=0; i < PAGE_SIZE; i++)
         ASSERT_TRUE((ph[i] == (i % 10) + '0'), "character in page read from disk is the one we expected.");
     printf("reading current block\n");
