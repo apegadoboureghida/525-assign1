@@ -75,7 +75,7 @@ RC createPageFile(char *fileName) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      01/31/2016  Mansi Malviya   Initialization
  */
 RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     //r+ opening in the beginning
@@ -154,7 +154,7 @@ RC closePageFile(SM_FileHandle *fHandle) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      01/31/2016  Pratishtha Verma   Initialization
  */
 RC destroyPageFile(char *fileName) {
 
@@ -194,7 +194,7 @@ RC destroyPageFile(char *fileName) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Andres Pegado   Initialization
  */
 RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
@@ -241,7 +241,7 @@ RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Pratishtha Verma   Initialization
  */
 int getBlockPos(SM_FileHandle *fHandle) {
 
@@ -268,7 +268,7 @@ int getBlockPos(SM_FileHandle *fHandle) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Pratishtha Verma   Initialization
  */
 RC readFirstBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
@@ -294,7 +294,7 @@ RC readFirstBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Pratishtha Verma   Initialization
  */
 RC readPreviousBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
@@ -320,7 +320,7 @@ RC readPreviousBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Pratishtha Verma   Initialization
  */
 RC readCurrentBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
@@ -346,7 +346,7 @@ RC readCurrentBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Andres Pegado   Initialization
  */
 RC readNextBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
     return readBlock(fHandle->curPagePos+1,fHandle,memPage);
@@ -371,7 +371,7 @@ RC readNextBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/02/2016  Andres Pegado   Initialization
  */
 RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
     return readBlock(fHandle->totalNumPages-1,fHandle,memPage);
@@ -394,7 +394,7 @@ RC readLastBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
  * History:
  *      Date        Name            Content
  *      ----------  --------------  ---------------------
- *      01/31/2016  Andres Pegado   Initialization
+ *      02/04/2016  Mansi Malviya   Initialization
  */
 RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
@@ -430,9 +430,47 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     return RC_OK;
 }
 
+/*
+ * Function Name: writeCurrentBlock
+ *
+ * Description:
+ *      Write the current page to disk using either the current position pointer.
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      SM_PageHandle memPage: Existing page handle
+ *
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/04/2016  Mansi Malviya   Initialization
+ */
+
 RC writeCurrentBlock(SM_FileHandle *fHandle, SM_PageHandle memPage) {
     return writeBlock(fHandle->curPagePos,fHandle,memPage);
 }
+
+
+/*
+ * Function Name: appendEmptyBlock
+ *
+ * Description:
+ *      This function appends empty block after the total pages in the file.
+ *
+ * Parameters:
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/04/2016  Mansi Malviya   Initialization
+ */
 
 RC appendEmptyBlock(SM_FileHandle *fHandle) {
 
@@ -453,6 +491,25 @@ RC appendEmptyBlock(SM_FileHandle *fHandle) {
     return RC_OK;
 }
 
+/*
+ * Function Name: ensureCapacity
+ *
+ * Description:
+ *      This function makes sure that file can be initialized with new total number of pages.
+ *
+ * Parameters:
+ *	numberOfPages: New No. of pages to be initialized with
+ *      SM_fileHandle *fHandle: Existing file handle
+ *      
+ * Return:
+ *      RC: Returned Code
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/04/2016  Mansi Malviya   Initialization
+ */
+ 
 RC ensureCapacity(int numberOfPages, SM_FileHandle *fHandle) {
 
     if(fHandle->totalNumPages<1){
