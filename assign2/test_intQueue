@@ -1,0 +1,43 @@
+#include "intQueue.c"
+#include <string.h>
+/*This file is to test the functionality of the intQueue,
+  I have no idea why the Do-while(0) loops are in the given test cases,
+  they may be needed here?*/
+  
+  char intQueueToString(intQueue *q){
+	/*
+		Precondition:         iterator at 0, result defined.
+		Invariant:           'iterator' elements have been converted to a string
+		Termination Function: q->length-iterator
+		Termination Dec:      iterator++;
+		Post Condition:		  result contains contents of queue*/
+		char result[q->length];
+		iterator=0;
+		while(q->length-iterator>1){
+			result[iterator]=q->queue[incNIndex(q,iterator)];
+			iterator++;		
+		}
+		return result;
+}
+
+
+#define ASSERT_EQUALS_intQueue(expected,result, message)
+do {
+	int	result=1;//null intQueue's are equal
+	if(expected->length!=result->length){result=0;}//Queues must be the same size
+	
+	char strExpect[expected->length]=intQueueToString(expected);
+	char strResult[result->length]=intQueueToString(result);
+	//Compare string results for equality
+	if(strcmp(strExpected,strResult)!=0){
+		result==0;
+	}
+	if(result==1){
+		printf("Success! expected %s and got %s",strExpected,strResult);
+	}
+	if(result==0){
+		printf("Error! expected %s but got %s",strExpected,strResult);
+	}
+} while(0)
+	
+	

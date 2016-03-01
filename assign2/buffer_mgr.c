@@ -5,11 +5,12 @@
 #include <stdlib.h>
 #include "buffer_mgr.h"
 #include "storage_mgr.h"
+#include "replacementManager.c"
 
 
 typedef struct MgmtData {
     SM_FileHandle fHandle;
-
+    replaceData *dataStat;
     int *fixCount;
     bool *dirtyPin;
     BM_PageHandle **buffer;
@@ -36,6 +37,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     bm->strategy = strategy;
     bm->mgmtData=stratData;
 
+
     bm->mgmtData=(MgmtData *) malloc(sizeof(MgmtData));
     MgmtData *mgmtData = bm->mgmtData;
 
@@ -43,6 +45,8 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     mgmtData->fixCount=(int *) malloc (sizeof(int)*numPages);
     mgmtData->dirtyPin=(bool *) malloc (sizeof(bool)*numPages);
     mgmtData->buffer=(BM_PageHandle **) malloc (sizeof(BM_PageHandle *)*numPages);
+    mgmtData->dataStat = initBMreplaceData(bm);
+
 
     int y = 0;
     for(y; y< numPages;y++) {
@@ -52,6 +56,8 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
         mgmtData->buffer[y] = (BM_PageHandle *) malloc (sizeof(BM_PageHandle )*numPages);
         mgmtData->buffer[y]->pageNum = -1;
     }
+
+
 
     return RC_OK;
 }
@@ -140,7 +146,8 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
         position =freeFrame(pageNum,bm->strategy,*data);
         page->data = (char *) malloc(PAGE_SIZE);
         //writeBlock(position,&fileHandle,page->data);
-        //Fifo Stats
+        //Todo:Fifo Stats
+
         int result = readBlock(pageNum,&fileHandle,page->data);
         data->buffer[position] = page;
         //data->frameRef[position]=pageNum;
