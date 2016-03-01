@@ -6,15 +6,8 @@
 #include "buffer_mgr.h"
 #include "storage_mgr.h"
 #include "replacementManager.c"
+#include "struct_mgr.h"
 
-
-typedef struct MgmtData {
-    SM_FileHandle fHandle;
-    replaceData *dataStat;
-    int *fixCount;
-    bool *dirtyPin;
-    BM_PageHandle **buffer;
-} MgmtData;
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const int numPages,
                   ReplacementStrategy strategy, void *stratData) {

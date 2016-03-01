@@ -21,7 +21,7 @@ void initArray(int size, int *queue){
         progress++;
     }
 }
-void initQueue(int length,intQueue *queue){
+void initQueue(intQueue *queue,int length){
     int emptyArray[length];/*TODO update for pointers*/
     initArray(length, emptyArray);
     queue->queue = (int **) malloc (sizeof(int *)*length);
@@ -106,5 +106,5 @@ void moveToBack(intQueue *q, int targetIndex){
     
     /*Then enqueue the last element and move the front of the queue*/
     q->queue[replacementTarget]=q->queue[replacementSource];
-    q->index=incIndex(q->index);
+    q->index=incIndex(q);
 }

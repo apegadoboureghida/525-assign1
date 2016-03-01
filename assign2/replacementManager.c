@@ -1,20 +1,17 @@
 /*Manages the maintanance and initialization of replacement strategy data structures*/
 # include "intQueue.c" //TODO fix this so it can find the queue functions
+#include "struct_mgr.h"
 
 
 /*For initialization*/
 /*to manage strategies*/
-typedef struct replaceData{
-    intQueue *FIFOq;
-    intQueue *LRUq;
-    intQueue *Clockq;
-} replaceData;
+
 
 //TODO replace type
 replaceData* initBMreplaceData(BM_BufferPool *bm){
     /*Initializes the replacement data for the various strategies*/
-    intQueue empty;
-    initQueue(empty, bm->pageNum);
+    intQueue *empty;
+    initQueue(empty, bm->numPages);
 	replaceData *data = (replaceData *) malloc(sizeof(replaceData));
     data->FIFOq=empty;
     data->LRUq=empty;
@@ -25,13 +22,19 @@ replaceData* initBMreplaceData(BM_BufferPool *bm){
 
 /*This is to implement various replacement algorithims*/
 /*Each of these functions takes a buffer manager and the index of the target page.*/
- int incNIndex(Queue *q,int n){
+ int incNIndex(intQueue *q,int n){
 	//increments the index N positions
 	//if n is greater than the length of the queue, then reduce it
-	if(n>q->length){return incNIndex(q,n-q->length};
+	if(n>q->length)
+	{
+		return incNIndex(q,n-q->length);
+	}
 	
 	//Otherwise if there is no need to wrap, increment the index
-	if (((q->index)+n)<((q->length)-1)){return (target->index+n);}
+	if (((q->index)+n)<((q->length)-1))
+	{
+		return (q->index+n);
+	}
 	
 	//if you need to wrap, then wrap
     return (q->index)+n -(q->length);
@@ -39,8 +42,10 @@ replaceData* initBMreplaceData(BM_BufferPool *bm){
 int checkPinned(MgmtData *ref,int location){
 	//checks if a given page is pinned
 	/*1 for pinned, 0 for unpinned*/
-	if (ref->fixCount[location])>0)
-	{return 1;}
+	if ((ref->fixCount[location])>0)
+	{
+		return 1;
+	}
 	return 0;
 }
 int nextUnpinned(MgmtData *ref,intQueue *q){
