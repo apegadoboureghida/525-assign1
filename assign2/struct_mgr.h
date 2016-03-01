@@ -8,7 +8,7 @@
 #endif //ASSIGN2_STRUCT_MGR_H
 
 #include "buffer_mgr.h"
-#include "storage_mgr.h"
+#include "intQueue.h"
 
 typedef struct replaceData{
     intQueue *FIFOq;
@@ -17,7 +17,8 @@ typedef struct replaceData{
 } replaceData;
 
 typedef struct MgmtData {
-    SM_FileHandle fHandle;
+    //SM_FileHandle fHandle;
+    char *FileName;
     replaceData *dataStat;
     int *fixCount;
     bool *dirtyPin;

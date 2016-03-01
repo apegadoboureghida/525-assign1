@@ -5,8 +5,9 @@
 #include <stdlib.h>
 #include "buffer_mgr.h"
 #include "storage_mgr.h"
-#include "replacementManager.c"
+//#include "replacementManager.c"
 #include "struct_mgr.h"
+
 
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const int numPages,
@@ -111,7 +112,9 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
     int y= 0;
     int position=-1;
     MgmtData *data = bm->mgmtData;
-    SM_FileHandle fileHandle = data->fHandle;
+
+    SM_FileHandle *fileHandle = (SM_FileHandle *) malloc(sizeof(SM_FileHandle));//= data->fHandle;
+    openPageFile(bm->pageFile,fileHandle);
 
 
     for(y;y<bm->numPages;y++)
@@ -129,7 +132,7 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
         //writeBlock(position,&fileHandle,page->data);
         //Todo:Fifo Stats
 
-        int result = readBlock(pageNum,&fileHandle,page->data);
+        int result = readBlock(pageNum,fileHandle,page->data);
         data->buffer[position] = page;
         //data->frameRef[position]=pageNum;
     }else{

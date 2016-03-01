@@ -1,11 +1,6 @@
 /*This file contains functions definining the intQueue data structure which will be used in multiple replacement strategies.*/
 /*Also included are functions useful to the data structure.*/
-typedef struct intQueue{
-
-    int index;
-    int length;
-    int **queue;/*Please check this working without specified length*/
-} intQueue;
+#include "intQueue.h"
 
 void initArray(int size, int *queue){
     /*initializes an array of default values*/
@@ -24,7 +19,7 @@ void initArray(int size, int *queue){
 void initQueue(intQueue *queue,int length){
     int emptyArray[length];/*TODO update for pointers*/
     initArray(length, emptyArray);
-    queue->queue = (int **) malloc (sizeof(int *)*length);
+    //queue->queue = (int **) malloc (sizeof(int *)*length);
     queue->index=0;
     queue->length=length;
 }
@@ -56,7 +51,7 @@ int enQueue(intQueue *target,int new){
         it also increments the index
         it also enqueues the given element at the back of the queue*/
     int result=*target->queue[target->index];
-    target->index=nextIndex(target);
+    target->index=incIndex(target);
     return result;
 }
 

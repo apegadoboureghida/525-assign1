@@ -1,6 +1,7 @@
 /*Manages the maintanance and initialization of replacement strategy data structures*/
-# include "intQueue.c" //TODO fix this so it can find the queue functions
+//# include "intQueue.h"
 #include "struct_mgr.h"
+#include <stdlib.h>
 
 
 /*For initialization*/
@@ -12,10 +13,10 @@ replaceData* initBMreplaceData(BM_BufferPool *bm){
     /*Initializes the replacement data for the various strategies*/
     intQueue *empty;
     initQueue(empty, bm->numPages);
-	replaceData *data = (replaceData *) malloc(sizeof(replaceData));
-    data->FIFOq=empty;
-    data->LRUq=empty;
-    data->Clockq=empty;
+	replaceData *data = (replaceData *) malloc (sizeof(replaceData));
+	data->FIFOq=(intQueue *) malloc (sizeof(intQueue));
+    data->LRUq=(intQueue *) malloc (sizeof(intQueue));
+    data->Clockq=(intQueue *) malloc (sizeof(intQueue));
 	return data;
 }
 
@@ -50,7 +51,8 @@ int checkPinned(MgmtData *ref,int location){
 }
 int nextUnpinned(MgmtData *ref,intQueue *q){
 	/*This function finds the closest unpinned entry to the top of the queue*/
-	result=q->index;
+	int result=q->index;
+	int consecPins=0;
 	while (checkPinned(ref,result)==1){
 		result=incNIndex(q,consecPins);
 		consecPins++;
@@ -72,32 +74,32 @@ int replaceNext(MgmtData *ref, intQueue *q, int replacement){
 	}
 
 int replaceFIFO(MgmtData *ref,int target){
-	return replaceNext(ref,ref->replaceData->FIFOq,target);
+	return replaceNext(ref,ref->dataStat->FIFOq,target);
 }
 
 /*LRU replacement, uses intQueue of the frameIndex's in order of use */
-void updateLRU(int target,BM_BufferPool bm/*TODO add type*/){
-    moveToFront(bm->mgmtData->replaceData->LRUqueue->queue,target);
+void updateLRU(int target,MgmtData *ref/*TODO add type*/){
+    moveToBack(ref->dataStat->LRUq->queue,target);
 }
 int replaceLRU(MgmtData *ref, int target){
-    return replaceNext(ref,ref->replaceData->LRUq,target);
+    return replaceNext(ref,ref->dataStat->LRUq,target);
 }
 
 /*Clock replacement, uses a queue on mutable data TODO handle case where target is pinned*/
 /*Apply this function upon pinning*/
-void updateClock(int target,BM_BufferPool bm/*TODO add type*/){
-    bm->mgmtData->replaceData->Clockq->queue[target]=1;
+void updateClock(int target,MgmtData *ref/*TODO add type*/){
+    *ref->dataStat->Clockq->queue[target]=1;
 }
-int replaceClock(BM_BufferPool bm/*TODO add type*/){
+int replaceClock(MgmtData *ref/*TODO add type*/){
    /*finds the index of the frame to be replaced with the Clock algorithim*/
    /*if frame has been used,
         reset use variable
         increment
         recurse*/
-     if(bm->mgmtData->replaceData->Clockq->queue[bm->mgmtData->replaceData->Clockq->index]==1){
-         bm->mgmtData->replaceData->Clockq->queue[bm->mgmtData->replaceData->Clockq->index]==1]=0;
-         bm->mgmtData->replaceData->Clockq->index=incIndex[ bm->mgmtData->replaceData->Clockq];
-         return replaceClock(bm);
+     if(*ref->dataStat->Clockq->queue[ref->dataStat->Clockq->index]==1){
+		 *ref->dataStat->Clockq->queue[ref->dataStat->Clockq->index]=0;
+		 ref->dataStat->Clockq->index=incIndex(ref->dataStat->Clockq);
+         return replaceClock(ref);
      }
-     return bm->mgmtData->replaceData->Clockq->index;
+     return ref->dataStat->Clockq->index;
 }
