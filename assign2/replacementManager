@@ -1,0 +1,56 @@
+/*Manages the maintanance and initialization of replacement strategy data structures*/
+# include intQueue.c //TODO fix this so it can find the queue functions
+
+
+/*For initialization*/
+/*to manage strategies*/
+typedef struct replaceData{
+    intQueue *FIFOq;
+    intQueue *LRUq;
+    intQueue *Clockq;
+}
+
+initBMreplaceData(bm *bm/*TODO replace type*/){
+    /*Initializes the replacement data for the various strategies*/
+    intQueue empty;
+    initQueue(empty, bm->pageNum);
+    bm->mgmtData->replaceData->FIFOq=empty;
+    bm->mgmtData->replaceData->LRUq=empty;
+    bm->mgmtData->replaceData->Clockq=empty;
+}
+
+
+/*This is to implement various replacement algorithims*/
+/*Each of these functions takes a buffer manager and the index of the target page.*/
+ 
+/*Fifo replacement, uses intQueue of the frameIndex's in order of entry*/
+int replaceFIFO(target,bm/*TODO add type*/){
+    return enQueue(bm->mgmtData->FIFOqueue->queue,target);
+}
+
+/*LRU replacement, uses intQueue of the frameIndex's in order of use */
+void updateLRU(target,bm/*TODO add type*/){
+    moveToFront(bm->mgmtData->LRUqueue->queue,target);
+}
+int replaceLRU(target,bm/*TODO add type*/){
+    return enQueue(bm->mgmtData->LRUqueue->queue,target);
+}
+
+/*Clock replacement, uses a queue on mutable data*/
+/*Apply this function upon pinning*/
+void updateClock(target, bm/*TODO add type*/){
+    bm->mgmtData->Clock->queue[target]=1;
+}
+int replaceClock(bm/*TODO add type*/){
+   /*finds the index of the frame to be replaced with the Clock algorithim*/
+   /*if frame has been used,
+        reset use variable
+        increment
+        recurse*/
+     if(bm->mgmtData->Clockq->queue[bm->mgmtData->]==1){
+         bm->mgmtData->Clockq->queue[bm->mgmtData->]=0
+         bm->mgmtData->Clockq->index=incIndex[ bm->mgmtData->Clockq->index];
+         return replaceClock(bm);
+     }
+     return bm->mgmtData->Clockq->index;
+}
