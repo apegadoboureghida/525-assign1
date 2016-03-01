@@ -79,7 +79,7 @@ RC forceFlushPool(BM_BufferPool *const bm) {
         if(data->fixCount[i]==0 && data->dirtyPin[i]== true)
         {
         writeBlock(numPages,&fHandle,page->data);
-        data->dirtyPin[i]==False;
+        data->dirtyPin[i]== false;
         }
     }
 
