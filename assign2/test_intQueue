@@ -1,0 +1,7 @@
+#include "intQueue.c"
+
+/*This file is to test the functionality of the intQueue,
+  I have no idea why the Do-while(0) loops are in the given test cases,
+  they may be needed here?*/
+  
+  
