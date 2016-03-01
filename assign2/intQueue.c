@@ -75,10 +75,13 @@ void moveToBack(Queue *q, int targetIndex){
     replacementSource=decIndex(targetIndex);
     
     /*
+    Precondition: Replacement target/source are both in queue
     Termination Function: remaining moves
     Decrement function: remainingMoves--;
-    exit condition: No more moves;
-    invariant:???*/
+    invariant:The queue past replacementTarget is in the correct order
+    loopCondition: There is more data to be copied
+    postcondition: The queue is ordered everywhere except possibly the top.;
+    */
     while (remainingMoves>0){
        q->queue[replacementTarget]=q->queue[replacementSource];
        replacementTarget=decIndex(replacementTarget);
