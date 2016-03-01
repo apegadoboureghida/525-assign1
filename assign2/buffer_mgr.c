@@ -65,17 +65,29 @@ RC shutdownBufferPool(BM_BufferPool *const bm) {
          return RC_WRITE_FAILED;
         }
     }
-
+d
     forceFlushPool(bm);
 
     return RC_OK;
 }
 
 RC forceFlushPool(BM_BufferPool *const bm) {
-    return 0;
+    MgmtData *data=bm->mgmtData;
+    int i=0;
+    for(i;i<bm->numPages;i++)
+    {
+        if(data->fixCount[y]==0 && data->dirtyPin[y]== true)
+        {
+        writeBlock(numPages,&fHandle,page->data);
+        data->dirtyPin[y]==False;
+        }
+    }
+
+    return RC_OK;
 }
 
 RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
+
     return 0;
 }
 
