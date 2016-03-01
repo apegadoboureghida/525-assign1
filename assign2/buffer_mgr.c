@@ -65,7 +65,7 @@ RC shutdownBufferPool(BM_BufferPool *const bm) {
          return RC_WRITE_FAILED;
         }
     }
-d
+
     forceFlushPool(bm);
 
     return RC_OK;
@@ -76,10 +76,10 @@ RC forceFlushPool(BM_BufferPool *const bm) {
     int i=0;
     for(i;i<bm->numPages;i++)
     {
-        if(data->fixCount[y]==0 && data->dirtyPin[y]== true)
+        if(data->fixCount[i]==0 && data->dirtyPin[i]== true)
         {
         writeBlock(numPages,&fHandle,page->data);
-        data->dirtyPin[y]==False;
+        data->dirtyPin[i]==False;
         }
     }
 
