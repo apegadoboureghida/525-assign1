@@ -1,15 +1,15 @@
 /*This file contains functions definining the intQueue data structure which will be used in multiple replacement strategies.*/
 /*Also included are functions useful to the data structure.*/
-<<<<<<< HEAD
+
 #include "intQueue.h"
-=======
+/*
 #include <stdlib.h>
 typedef struct intQueue{
     int index;
     int length;
-    int *queue;/*Please check this working without specified length*/
+    int *queue;
 } intQueue;
->>>>>>> fa1774eb608e150f116f05a7240b742b816d1634
+*/
 
 void initArray(int size, int *queue){
     /*initializes an array of default values*/
@@ -28,11 +28,11 @@ void initArray(int size, int *queue){
 void initQueue(intQueue *queue,int length){
     int emptyArray[length];/*TODO update for pointers*/
     initArray(length, emptyArray);
-<<<<<<< HEAD
+
     //queue->queue = (int **) malloc (sizeof(int *)*length);
-=======
+
     queue->queue = (int *) malloc (sizeof(int)*length);
->>>>>>> fa1774eb608e150f116f05a7240b742b816d1634
+
     queue->index=0;
     queue->length=length;
 }
@@ -63,13 +63,10 @@ int enQueue(intQueue *target,int new){
     /*This function returns the front of the queue: the element to be deleted.
         it also increments the index
         it also enqueues the given element at the back of the queue*/
-<<<<<<< HEAD
+
     int result=*target->queue[target->index];
     target->index=incIndex(target);
-=======
-    int result=target->queue[target->index];
-    target->index=nextIndex(target);
->>>>>>> fa1774eb608e150f116f05a7240b742b816d1634
+
     return result;
 }
 
@@ -120,11 +117,9 @@ void moveToBack(intQueue *q, int targetIndex){
     /*Then enqueue the last element and move the front of the queue*/
     q->queue[replacementTarget]=q->queue[replacementSource];
     q->index=incIndex(q);
-<<<<<<< HEAD
-=======
+
 }
 void moveToFront(intQueue *q, int targetIndex){
     moveToBack(q,targetIndex);
     q->index=decIndex(q);
->>>>>>> fa1774eb608e150f116f05a7240b742b816d1634
 }
