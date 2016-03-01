@@ -87,7 +87,7 @@ void moveToBack(Queue *q, int targetIndex){
     }
     replacementSource=temp;
     
-    /*Then 
+    /*Then insert the last element and move the front of the queue*/
     q->queue[replacementTarget]=q->queue[replacementSource];
     q->index=incIndex(q->index);
 }
