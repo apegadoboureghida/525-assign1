@@ -42,6 +42,13 @@ int decIndex(FifoQueue *target){
     return target->length-1;
 }
 
+int relDecIndex(intQueue *q, int where){
+    /*if not at beginning of array, return where-1,
+      if at edge of array, reset to beginning.*/
+    if (where>0){return (where-1);}
+    return q->length-1;
+}
+
 /*adding to queue */
 int enQueue(Queue *target,int new){
     /*This function returns the front of the queue: the element to be deleted.
