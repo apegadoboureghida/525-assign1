@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include "storage_mgr.h"
 
-
 /* manipulating page files */
 void initStorageManager(void) {
 
@@ -81,6 +80,7 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     //r+ opening in the beginning
     FILE *fp=fopen(fileName, "r+");
 
+
     if(fp == NULL){
         return RC_FILE_NOT_FOUND;
     }
@@ -93,13 +93,13 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
 
     fscanf (fp, "%d", &totalNumPages);
 
-    printf("%d",totalNumPages);
     //Initializing fHandle with page data.
     fHandle->totalNumPages=totalNumPages;
     fHandle->curPagePos=0;
     fHandle->fileName=fileName;
     
     fclose(fp);
+
     return RC_OK;
 }
 
@@ -212,9 +212,11 @@ RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     FILE *fp;
 
     fp = fopen(fHandle->fileName,"r");
-    
-    fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
+    if (fp==NULL){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
 
+    fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
     if(0 == fread(memPage, sizeof(char), PAGE_SIZE, fp)){
         fclose(fp);
         return  RC_READ_NON_EXISTING_PAGE;
