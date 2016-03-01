@@ -59,6 +59,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
 RC shutdownBufferPool(BM_BufferPool *const bm) {
 
     MgmtData *data = bm->mgmtData;
+    //Check if someone is using the buffer.
     int y =0;
     for(y; y< bm->numPages;y++){
         if(data->fixCount[y]>0){
@@ -66,6 +67,7 @@ RC shutdownBufferPool(BM_BufferPool *const bm) {
         }
     }
 
+    //Move all dirty pages to hard disk.
     forceFlushPool(bm);
 
     return RC_OK;
@@ -76,7 +78,23 @@ RC forceFlushPool(BM_BufferPool *const bm) {
 }
 
 RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
-    return 0;
+    MgmtData *data = bm->mgmtData;
+    int y=0;
+    int position = -1;
+    for(y;y<bm->numPages;y++)
+    {
+        BM_PageHandle *temp = data->buffer[y];
+        if(temp != NULL && temp->pageNum== page->pageNum){
+            position= y;
+        }
+    }
+
+    if(position > 0){
+        data->dirtyPin[position] = true;
+        return RC_OK;
+    }else{
+        return RC_READ_NON_EXISTING_PAGE;
+    }
 }
 
 RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
