@@ -29,13 +29,13 @@ void initQueue(int length,intQueue *queue){
 }
 
 /*Index increments*/
-int incIndex(FifoQueue *target){
+int incIndex(intQueue *target){
     /*if not at end of array, return index+1,
       if at edge of array, reset to beginning.*/
     if ((target->index)<(target->length-1)){return (target->index+1);}
     return 0;
 }
-int decIndex(FifoQueue *target){
+int decIndex(intQueue *target){
     /*if not at beginning of array, return index-1,
       if at edge of array, reset to beginning.*/
     if ((target->index)>0){return (target->index-1);}
@@ -84,7 +84,7 @@ void moveToBack(Queue *q, int targetIndex){
     /*Then, cascade replace each element with its prior element,
       until there are no more replacements to make*/
     replacementTarget=targetIndex;
-    replacementSource=decIndex(targetIndex);
+    replacementSource=relDecIndex(q, targetIndex);
     
     /*
     Precondition: Replacement target/source are both in queue
@@ -96,8 +96,8 @@ void moveToBack(Queue *q, int targetIndex){
     */
     while (remainingMoves>0){
        q->queue[replacementTarget]=q->queue[replacementSource];
-       replacementTarget=decIndex(replacementTarget);
-       replacementSource=decIndex(replacementSource);
+       replacementTarget=relDecIndex(q, replacementTarget);
+       replacementSource=relDecIndex(q, replacementSource);
        remainingMoves--;
     }
     replacementSource=temp;
