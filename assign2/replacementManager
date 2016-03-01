@@ -48,7 +48,7 @@ int replaceClock(bm/*TODO add type*/){
         increment
         recurse*/
      if(bm->mgmtData->Clockq->queue[bm->mgmtData->]==1){
-         bm->mgmtData->Clockq->queue[bm->mgmtData->]=0
+         bm->mgmtData->Clockq->queue[bm->mgmtData->]=0;
          bm->mgmtData->Clockq->index=incIndex[ bm->mgmtData->Clockq->index];
          return replaceClock(bm);
      }
