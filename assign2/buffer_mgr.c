@@ -139,7 +139,10 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
     page->pageNum=pageNum;
 
     data->fixCount[position]++;
-
+    /*TODO fix include and debug*/
+    /*Then update the replacement strategies with the new information*/
+   // updateLRU(target, bm); /*TODO update arguments*/
+    //updateClock(target,bm); /*TODO update arguments*/
     return RC_OK;
 }
 
