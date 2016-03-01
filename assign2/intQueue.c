@@ -1,10 +1,10 @@
 /*This file contains functions definining the intQueue data structure which will be used in multiple replacement strategies.*/
 /*Also included are functions useful to the data structure.*/
+#include <stdlib.h>
 typedef struct intQueue{
-
     int index;
     int length;
-    int **queue;/*Please check this working without specified length*/
+    int *queue;/*Please check this working without specified length*/
 } intQueue;
 
 void initArray(int size, int *queue){
@@ -24,7 +24,7 @@ void initArray(int size, int *queue){
 void initQueue(int length,intQueue *queue){
     int emptyArray[length];/*TODO update for pointers*/
     initArray(length, emptyArray);
-    queue->queue = (int **) malloc (sizeof(int *)*length);
+    queue->queue = (int *) malloc (sizeof(int)*length);
     queue->index=0;
     queue->length=length;
 }
@@ -55,7 +55,7 @@ int enQueue(intQueue *target,int new){
     /*This function returns the front of the queue: the element to be deleted.
         it also increments the index
         it also enqueues the given element at the back of the queue*/
-    int result=*target->queue[target->index];
+    int result=target->queue[target->index];
     target->index=nextIndex(target);
     return result;
 }
@@ -80,7 +80,7 @@ void moveToBack(intQueue *q, int targetIndex){
     remainingMoves=countMoves(q,targetIndex);
     
     //Store the value to be enqueued
-    int temp=*q->queue[targetIndex];
+    int temp=q->queue[targetIndex];
     
     /*Then, cascade replace each element with its prior element,
       until there are no more replacements to make*/
@@ -106,5 +106,9 @@ void moveToBack(intQueue *q, int targetIndex){
     
     /*Then enqueue the last element and move the front of the queue*/
     q->queue[replacementTarget]=q->queue[replacementSource];
-    q->index=incIndex(q->index);
+    q->index=incIndex(q);
+}
+void moveToFront(intQueue *q, int targetIndex){
+    moveToBack(q,targetIndex);
+    q->index=decIndex(q);
 }
