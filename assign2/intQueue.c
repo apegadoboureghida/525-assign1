@@ -85,8 +85,9 @@ void moveToBack(intQueue *q, int targetIndex){
     /*Then, cascade replace each element with its prior element,
       until there are no more replacements to make*/
     int replacementTarget=targetIndex;
-    int replacementSource=decIndex(targetIndex);
-    
+    int replacementSource=relDecIndex(q,targetIndex);
+
+
     /*
     Precondition: Replacement target/source are both in queue
     Termination Function: remaining moves
@@ -97,8 +98,8 @@ void moveToBack(intQueue *q, int targetIndex){
     */
     while (remainingMoves>0){
        q->queue[replacementTarget]=q->queue[replacementSource];
-       replacementTarget=decIndex(replacementTarget);
-       replacementSource=decIndex(replacementSource);
+       replacementTarget=relDecIndex(q, replacementTarget);
+       replacementSource=relDecIndex(q, replacementSource);
        remainingMoves--;
     }
     replacementSource=temp;

@@ -61,7 +61,7 @@ int replaceNext(MgmtData *ref, intQueue *q, int replacement){
 		moveToBack(q,next);
 		/*Since moveToBack moves the index to the item after the nextUnpinned,
 		decrement the index to shift the nextUnpinned to the top of the queue*/
-		q->index=decIndex(q->index);
+		q->index=decIndex(q);
 	}
 	return enQueue(q,replacement);
 	}
@@ -91,7 +91,7 @@ int replaceClock(BM_BufferPool bm/*TODO add type*/){
         recurse*/
      if(bm->mgmtData->Clockq->queue[bm->mgmtData->]==1){
          bm->mgmtData->Clockq->queue[bm->mgmtData->]=0;
-         bm->mgmtData->Clockq->index=incIndex[ bm->mgmtData->Clockq->index];
+         bm->mgmtData->Clockq->index=incIndex[ bm->mgmtData->Clockq];
          return replaceClock(bm);
      }
      return bm->mgmtData->Clockq->index;
