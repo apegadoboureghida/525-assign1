@@ -10,6 +10,11 @@ void initArray(int size, int *queue){
     /*initializes an array of default values*/
     int progress=0;
     const default=-1;
+    /*Precondition: queue is an array of size "size", progress is 0
+      Termination Function: number of unassigned items
+      Loop Invariant: all values before "progress" have been intitialized
+      Termination dec: assign value to current location, progress++;
+      postCondition: The array has been instantiated with default values*/
     while(progress<size-1){
         queue[progress]=default
         progress++;
