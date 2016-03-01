@@ -1,8 +1,9 @@
 #include "intQueue.c"
 #include <string.h>
-/*This file is to test the functionality of the intQueue,
-  I have no idea why the Do-while(0) loops are in the given test cases,
-  they may be needed here?*/
+#include <stdio.h>
+/*This file is to test the functionality of the intQueue.
+    In particular it checks the initialization, enqueue, and moveToBack methods
+ */
   
   char intQueueToString(intQueue *q){
 	/*
@@ -11,33 +12,94 @@
 		Termination Function: q->length-iterator
 		Termination Dec:      iterator++;
 		Post Condition:		  result contains contents of queue*/
-		char result[q->length];
-		iterator=0;
+		char *result[q->length];
+		int iterator=0;
 		while(q->length-iterator>1){
-			result[iterator]=q->queue[incNIndex(q,iterator)];
+			result[iterator]=(char *)(q->queue[incNIndex(q,iterator)]);
 			iterator++;		
 		}
 		return result;
 }
 
 
-#define ASSERT_EQUALS_intQueue(expected,result, message)
-do {
+void ASSERT_EQUALS_intQueue(intQueue *expected,intQueue *recieved,char *message)
+    {
 	int	result=1;//null intQueue's are equal
-	if(expected->length!=result->length){result=0;}//Queues must be the same size
+	if(expected->length!=recieved->length){result=0;}//Queues must be the same size
 	
-	char strExpect[expected->length]=intQueueToString(expected);
-	char strResult[result->length]=intQueueToString(result);
+
 	//Compare string results for equality
-	if(strcmp(strExpected,strResult)!=0){
+	if(strcmp(intQueueToString(expected),intQueueToString(recieved))!=0){
 		result==0;
 	}
+	printf(message);
 	if(result==1){
-		printf("Success! expected %s and got %s",strExpected,strResult);
+		printf("Success! expected %s and got %s \n",intQueueToString(expected),intQueueToString(recieved));
 	}
 	if(result==0){
-		printf("Error! expected %s but got %s",strExpected,strResult);
+		printf("Error! expected %s but got %s \n",intQueueToString(expected),intQueueToString(recieved));
 	}
-} while(0)
+} 
+void massEnqueue(int* input, int number, intQueue *q){
+    /*adds the given entries to the queue*/
+    if(number>0){
+        enQueue(q,input[0]);
+        massEnqueue(input[1],number-1,q);
+}}
 	
-	
+void testInitArray(){
+    /*checks that adding the default element does not change the array*/
+    intQueue *q;
+    intQueue *p;
+    initArray(q,5);
+    initArray(p,5);
+    
+    int expected[5];
+    expected[0]=-1;
+    expected[1]=-1;
+    expected[2]=-1;
+    expected[3]=-1;
+    expected[4]=-1;
+    
+    massEnqueue(expected,5,q);
+ 
+    
+    ASSERT_EQUALS_intQueue(expected,q,"Adding default value to empty array causes no change");
+}
+
+void testMoveToBack(){
+    //Checks that items are correctly re-arranged when moving an item to the back
+    intQueue *q;
+    intQueue *p;
+    initArray(q,5);
+    initArray(p,5);
+    
+    int start[5];
+    start[0]=1;
+    start[1]=2;
+    start[2]=3;
+    start[3]=4;
+    start[4]=5;
+    
+    massEnqueue(start,5,q);//define the trial queue as q
+    moveToBack(q,2);// move element 3 to the back
+    
+    int expected[5];
+    expected[0]=1;
+    expected[1]=2;
+    expected[2]=4;
+    expected[3]=5;
+    expected[4]=3;
+    massEnqueue(expected,5,p);//define the control queue as p
+    ASSERT_EQUALS_intQueue(p,q,"Moving middle element to Back:");
+    
+    //Check that the queue can be restored
+    moveToBack(q,2);// move element 4 to the back
+    moveToBack(q,2);// move element 5 to the back
+    massEnqueue(start,5,p);//define the control queue as p
+    ASSERT_EQUALS_intQueue(p,q,"Moving middle element to Back until Identity:");
+    
+    moveToBack(q,4);// move last element to the back <shouldn't change anything>
+    ASSERT_EQUALS_intQueue(p,q,"Moving last element to Back:");
+}
+
