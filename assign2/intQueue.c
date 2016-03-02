@@ -64,7 +64,23 @@ int relDecIndex(intQueue *q, int where){
     if (where>0){return (where-1);}
     return q->length-1;
 }
-
+int incNIndex(intQueue *q,int n){
+	//increments the index N positions
+	//if n is greater than the length of the queue, then reduce it
+	if(n>q->length)
+	{
+		return incNIndex(q,n-q->length);
+	}
+	
+	//Otherwise if there is no need to wrap, increment the index
+	if (((q->index)+n)<((q->length)-1))
+	{
+		return (q->index+n);
+	}
+	
+	//if you need to wrap, then wrap
+    return (q->index)+n -(q->length);
+}
 /*adding to queue */
 int enQueue(intQueue *target,int new){
     /*This function returns the front of the queue: the element to be deleted.
