@@ -202,7 +202,7 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
     page->pageNum = data->buffer[position]->pageNum;
     data->fixCount[position]++;
 
-    data->lruStat[position] = clock();
+    data->lruStat[position] = ++data->readBuff;
     return RC_OK;
 }
 
