@@ -1,5 +1,5 @@
 //
-// Created by apegadoboureghda on 26/02/16.
+// Created by apegadoboureghda on 02/20/16.
 //
 
 #include <stdlib.h>
@@ -14,6 +14,32 @@ typedef struct MgmtData {
     bool *dirtyPin;
     BM_PageHandle **buffer;
 } MgmtData;
+
+/*
+ * Function Name: initBufferPool
+ *
+ * Description:
+ *	Creates a buffer pool for an existing page file.
+ *      Opens an existing page file.
+ *      Initializes the buffer pool.
+ *      Handles the memory allocation.
+ *
+ * Parameters:
+ *      BM_BufferPool *const bm: Object for buffer pool
+ *	const char *const pageFileName:Name of the page file associated with the buffer pool 
+ *	const int numPages: Number of page frames
+ *	ReplacementStrategy strategy:Page replacement strategy
+ *	void *stratData:Pointer to bookkeeping data
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Andres Pegado   Initialization
+ */
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const int numPages,
                   ReplacementStrategy strategy, void *stratData) {
@@ -56,6 +82,27 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     return RC_OK;
 }
 
+/*
+ * Function Name: shutdownBufferPool
+ *
+ * Description:
+ *      Destroys a buffer pool.
+ *      Checks for user using he buffer and throws error RC_WRITE_FAILED.
+ *      Uses forceFlushpool function to move dirty pages to disk.
+ *       
+ * Parameters:
+ *      BM_BufferPool *const bm: BUffer pool object
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Mansi Malviya   Initialization
+ */
+
 RC shutdownBufferPool(BM_BufferPool *const bm) {
 
     MgmtData *data = bm->mgmtData;
@@ -72,6 +119,25 @@ RC shutdownBufferPool(BM_BufferPool *const bm) {
     return RC_OK;
 }
 
+/*
+ * Function Name: forceFlushPool
+ *
+ * Description:
+ *      Writes dirty pages from buffer pool to disk.
+ *      Checks for fixCount to be zero and writes the page onto disk.
+ *       
+ * Parameters:
+ *      BM_BufferPool *const bm: BUffer pool object
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Mansi Malviya   Initialization
+ */
 
 RC forceFlushPool(BM_BufferPool *const bm) {
 
@@ -91,6 +157,27 @@ RC forceFlushPool(BM_BufferPool *const bm) {
     return RC_OK;
 }
 
+/*
+ * Function Name: markDirty
+ *
+ * Description:
+ *      It marks the page dirty.
+ *      Checks for each page on buffer using page handle if not null then marks it dirty.
+ *      Updates the dirtyPin array witht he position of page.
+ *       
+ * Parameters:
+ *      BM_BufferPool *const bm: Buffer pool object
+ *	BM_PageHandle *const page: Buffer pool page handle 
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK and no page exist in buffer then returns RC_READ_NON_EXISTING_PAGE.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/21/2016  Andres Pegado   Initialization
+ */
 RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
 
     MgmtData *data = bm->mgmtData;
@@ -113,6 +200,28 @@ RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
 
 }
 
+/*
+ * Function Name: unpinPage
+ *
+ * Description:
+ *      Unpins a particular page from buffer.
+ *      Takes pageNum as page to be unpinned from buffer.
+ *      Updates the fixCount to decrease the position.
+ *       
+ * Parameters:
+ *      BM_BufferPool *const bm: Buffer pool object
+ *	BM_PageHandle *const page: Buffer pool page handle 
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK and no page exist in buffer then returns RC_READ_NON_EXISTING_PAGE.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/21/2016  Andres Pegado   Initialization
+ */
+
 RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
     //Check if it's already on buffer
     int y= 0;
@@ -129,7 +238,7 @@ RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
         data->fixCount[position]--;
         return RC_OK;
     }else{
-        return -1;
+        return RC_READ_NON_EXISTING_PAGE;
     }
 
 
