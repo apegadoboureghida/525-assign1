@@ -15,7 +15,21 @@ typedef struct intQueue{
 */
 
 void initArray(int size, int *queue){
-    /*initializes an array of default values*/
+    /*
+ * Function Name: initArray
+ *
+ * Description:
+ *	Fills an array with default values
+ *
+ * Parameters:
+ *      int size:     The length of the array
+ *	int *queue:   An array of integers to be populated
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     int progress=0;
     int def=-1;
     /*Precondition: queue is an array of size "size", progress is 0
@@ -29,6 +43,21 @@ void initArray(int size, int *queue){
     }
 }
 void initQueue(intQueue *queue,int length){
+	   /*
+ * Function Name: initQueue
+ *
+ * Description:
+ *	Fills an intQueue with default values
+ *
+ * Parameters:
+ *      int length:     The length of the queue
+ *	int *queue:     The queue to be populated
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     int emptyArray[length];/*TODO update for pointers*/
     initArray(length, emptyArray);
 
@@ -46,25 +75,93 @@ void initQueue(intQueue *queue,int length){
 
 /*Index increments*/
 int incIndex(intQueue *target){
+ /*
+ * Function Name: incIndex
+ *
+ * Description:
+ *	Gives the int second from the top of the queue
+ *
+ * Parameters:
+ *      intQueue target: the intQueue to read from
+ *
+ * Return:
+ *	returns the item that would be removed in 2 enqueues
+ 
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     /*if not at end of array, return index+1,
       if at edge of array, reset to beginning.*/
     if ((target->index)<(target->length-1)){return (target->index+1);}
     return 0;
 }
 int decIndex(intQueue *target){
-    /*if not at beginning of array, return index-1,
+  /*
+ * Function Name: decIndex
+ *
+ * Description:
+ *	Gives most recently added item to the queue
+ *
+ * Parameters:
+ *      intQueue target: the intQueue to read from
+ *
+ * Return:
+ *	returns the item most recently added.
+ 
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
+ /*if not at beginning of array, return index-1,
       if at edge of array, reset to beginning.*/
     if ((target->index)>0){return (target->index-1);}
     return target->length-1;
 }
 
 int relDecIndex(intQueue *q, int where){
+    /*
+ * Function Name: relDecIndex
+ *
+ * Description:
+ *	Non-destructively returns the element entered before the 'where'
+ *
+ * Parameters:
+ *      intQueue target: the intQueue to read from
+ *	int	 where:  The number of positions into the queue to look
+ *
+ * Return:
+ *	returns the item that was 1 entry after 'where'
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     /*if not at beginning of array, return where-1,
       if at edge of array, reset to beginning.*/
     if (where>0){return (where-1);}
     return q->length-1;
 }
 int incNIndex(intQueue *q,int n){
+	 /*
+ * Function Name: incNIndex
+ *
+ * Description:
+ *	Non-destructively returns the element 'n' positions from the front of the queue
+ *
+ * Parameters:
+ *      intQueue target: the intQueue to read from
+ *	int	 n:  The number of positions into the queue to look
+ *
+ * Return:
+ *	returns the item that was added 'n' entries ago, '0' for 'n' returns the top of the queue
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
 	//increments the index N positions
 	//if n is greater than the length of the queue, then reduce it
 	if(n>q->length)
@@ -83,6 +180,21 @@ int incNIndex(intQueue *q,int n){
 }
 /*adding to queue */
 int enQueue(intQueue *target,int new){
+	   /*
+ * Function Name: enQueue
+ *
+ * Description:
+ *	Adds an element to a queue and returns the element removed from the queue
+ *
+ * Parameters:
+ *      intQueue target:     The queue to be edited
+ *		int new:   An array of integers to be populated
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     /*This function returns the front of the queue: the element to be deleted.
         it also increments the index
         it also enqueues the given element at the back of the queue*/
@@ -95,6 +207,21 @@ int enQueue(intQueue *target,int new){
 
 /*These functions are for MoveToBack*/
 int countMoves(intQueue *q, int targetIndex){
+	   /*
+ * Function Name: countMoves
+ *
+ * Description:
+ * Counts the number of moves until the top of the queue is at targetIndex
+ *
+ * Parameters:
+ *      intQueue q:         The queue to be studied
+ *	int targetIndex:    A position in the queue <where the top of the queue will move>
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     /*This function counts the number of moves needed to update the queue
         */
      if(targetIndex>q->index){
@@ -108,7 +235,24 @@ int countMoves(intQueue *q, int targetIndex){
 }
 
 void moveToBack(intQueue *q, int targetIndex){
-    /*This function moves the argument target to the back of the input queue*/
+      /*
+ * Function Name: moveToBack
+ *
+ * Description:
+ *	Takes an element and a Queue.
+ *		takes the element out of the queue and inserts it at the end
+ *		elements between the targetIndex and the current index are pushed forward 1 level in the queue
+ *
+ * Parameters:
+ *      intQueue q:        The queue to be edited
+ *	int targetIndex:   The index of the item to be moved to the back of the queue
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
+    
     int remainingMoves;
 
     remainingMoves=countMoves(q,targetIndex);
@@ -142,6 +286,23 @@ void moveToBack(intQueue *q, int targetIndex){
     q->index=incIndex(q);
 }
 void moveToFront(intQueue *q, int targetIndex){
+      /*
+ * Function Name: moveToFront
+ *
+ * Description:
+ *	Takes an element and a Queue.
+ *		takes the element out of the queue and inserts it at the beginning
+ *		elements between the targetIndex and the current index are pushed backward 1 level in the queue
+ *
+ * Parameters:
+ *      intQueue q:        The queue to be edited
+ *	int targetIndex:   The index of the item to be moved to the front of the queue
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/20/2016  Bill Molchan   Initialization
+ */
     moveToBack(q,targetIndex);
     q->index=decIndex(q);
 }
