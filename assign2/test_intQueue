@@ -15,7 +15,7 @@
 		char *result[q->length];
 		int iterator=0;
 		while(q->length-iterator>1){
-			result[iterator]=(char *)(q->queue[incNIndex(q,iterator)]);
+			result[iterator]=(char)(q->queue[incNIndex(q,iterator)]);
 			iterator++;		
 		}
 		return result;
@@ -44,15 +44,15 @@ void massEnqueue(int* input, int number, intQueue *q){
     /*adds the given entries to the queue*/
     if(number>0){
         enQueue(q,input[0]);
-        massEnqueue(input[1],number-1,q);
+        massEnqueue(&input[1],number-1,q);
 }}
 	
 void testInitArray(){
     /*checks that adding the default element does not change the array*/
     intQueue *q;
     intQueue *p;
-    initArray(q,5);
-    initArray(p,5);
+    initArray(5,q);
+    initArray(5,p);
     
     int expected[5];
     expected[0]=-1;
@@ -71,8 +71,8 @@ void testMoveToBack(){
     //Checks that items are correctly re-arranged when moving an item to the back
     intQueue *q;
     intQueue *p;
-    initArray(q,5);
-    initArray(p,5);
+    initArray(5,q);
+    initArray(5,p);
     
     int start[5];
     start[0]=1;
