@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include "storage_mgr.h"
+#include <string.h>
 
 /* manipulating page files */
 void initStorageManager(void) {
@@ -78,8 +79,7 @@ RC createPageFile(char *fileName) {
  */
 RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     //r+ opening in the beginning
-    FILE *fp=fopen(fileName, "r+");
-
+    FILE *fp=fopen(fileName, "r");
 
     if(fp == NULL){
         return RC_FILE_NOT_FOUND;
@@ -91,15 +91,12 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     totalNumPages = ftell(fp);
     totalNumPages = totalNumPages/PAGE_SIZE;
 
-    fscanf (fp, "%d", &totalNumPages);
-
     //Initializing fHandle with page data.
     fHandle->totalNumPages=totalNumPages;
     fHandle->curPagePos=0;
     fHandle->fileName=fileName;
-    
-    fclose(fp);
 
+    fclose(fp);
     return RC_OK;
 }
 
@@ -132,7 +129,7 @@ RC closePageFile(SM_FileHandle *fHandle) {
     fHandle->totalNumPages=0;
     fHandle->fileName="";
     fHandle->curPagePos=0;
-    
+
     fclose(fp);
 
     return RC_OK;
@@ -163,7 +160,6 @@ RC destroyPageFile(char *fileName) {
 
     if(fp==0)
     {
-        printf("file Not found");
         fclose(fp);
         return RC_FILE_NOT_FOUND;
     }
@@ -205,18 +201,16 @@ RC readBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if(pageNum <0){
         return RC_READ_NON_EXISTING_PAGE;
     }
-        //Check totalNumPages
-    if(fHandle->totalNumPages<=pageNum){
+    //Check totalNumPages
+    if(fHandle->totalNumPages<pageNum){
         return RC_READ_NON_EXISTING_PAGE;
     }
     FILE *fp;
 
     fp = fopen(fHandle->fileName,"r");
-    if (fp==NULL){
-        return RC_READ_NON_EXISTING_PAGE;
-    }
 
     fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
+
     if(0 == fread(memPage, sizeof(char), PAGE_SIZE, fp)){
         fclose(fp);
         return  RC_READ_NON_EXISTING_PAGE;
@@ -410,20 +404,19 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
 
     FILE *fp;
 
-    
+
     //Check totalNumPages
-    if(fHandle->totalNumPages<pageNum){
-        return RC_WRITE_FAILED;
+    if((fHandle->totalNumPages)<=pageNum){
+        ensureCapacity(pageNum,fHandle);
     }
 
-    fp = fopen(fHandle->fileName,"w");
+    fp = fopen(fHandle->fileName,"r+");
 
     fseek(fp, PAGE_SIZE*(pageNum), SEEK_SET);
-    if(fwrite(memPage,sizeof(char),PAGE_SIZE,fp) == 0){
+    if(fwrite(memPage,sizeof(char),strlen(memPage),fp) == 0){
         fclose(fp);
         return  RC_WRITE_FAILED;
     }
-    printf("writing: %c\n",memPage[0]);
 
     fclose(fp);
 
@@ -511,7 +504,7 @@ RC appendEmptyBlock(SM_FileHandle *fHandle) {
  *      ----------  --------------  ---------------------
  *      02/04/2016  Mansi Malviya   Initialization
  */
- 
+
 RC ensureCapacity(int numberOfPages, SM_FileHandle *fHandle) {
 
     if(fHandle->totalNumPages<1){
