@@ -252,6 +252,28 @@ RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
 }
 
 
+/*
+ * Function Name: forcePage
+ *
+ * Description:
+ *      Writes the current content of the page back to disk.
+ *      Checks for page existence in buffer.
+ *      Write the data from buffer to disk.
+ *       
+ * Parameters:
+ *      BM_BufferPool *const bm: Buffer pool object
+ *	BM_PageHandle *const page: Buffer pool page handle 
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/22/2016  Mansi Malviya   Initialization
+ */
+ 
 RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
     MgmtData *mgmtData = bm->mgmtData;
     SM_FileHandle fHandle;
@@ -269,6 +291,29 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
     return RC_OK;
 }
 
+/*
+ * Function Name: pinPage
+ *
+ * Description:
+ *      Pins the page in buffer with the pageNum.
+ *      Checks for page existence in buffer if it existes then mark the position.
+ *      Uses freeFrame for strategy, allocates memory,read the data from pageNum and pin it in buffer.
+ *       
+ * Parameters:
+ *      BM_BufferPool *const bm: Buffer pool object
+ *	BM_PageHandle *const page: Buffer pool page handle 
+ *	const PageNumber pageNum: Number of the page to be pinned.
+ *
+ * Return:
+ *      RC: Returned Code
+ *          Should return RC_OK.
+ *
+ * History:
+ *      Date        Name            Content
+ *      ----------  --------------  ---------------------
+ *      02/22/2016  Andres Pegado   Initialization
+ */
+ 
 RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber pageNum) {
 
 
