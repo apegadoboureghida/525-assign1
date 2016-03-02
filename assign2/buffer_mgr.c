@@ -5,13 +5,14 @@
 #include <stdlib.h>
 #include "buffer_mgr.h"
 #include "storage_mgr.h"
-
+#include "intQueue.h"
 
 typedef struct MgmtData {
     SM_FileHandle fHandle;
 
     int *fixCount;
     bool *dirtyPin;
+    intQueue *lruStat;
     BM_PageHandle **buffer;
 } MgmtData;
 
@@ -28,6 +29,8 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
 
     result = ensureCapacity(numPages,&fHandle);
 
+
+
     if(result!=0)
         return result;
 
@@ -36,6 +39,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     bm->strategy = strategy;
     bm->mgmtData=stratData;
 
+
     bm->mgmtData=(MgmtData *) malloc(sizeof(MgmtData));
     MgmtData *mgmtData = bm->mgmtData;
 
@@ -43,6 +47,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     mgmtData->fixCount=(int *) malloc (sizeof(int)*numPages);
     mgmtData->dirtyPin=(bool *) malloc (sizeof(bool)*numPages);
     mgmtData->buffer=(BM_PageHandle **) malloc (sizeof(BM_PageHandle *)*numPages);
+    mgmtData->lruStat=(intQueue *) malloc(sizeof(intQueue));
 
     int y = 0;
     for(y; y< numPages;y++) {
@@ -52,6 +57,8 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
         mgmtData->buffer[y] = (BM_PageHandle *) malloc (sizeof(BM_PageHandle )*numPages);
         mgmtData->buffer[y]->pageNum = -1;
     }
+
+    initQueue(mgmtData->lruStat,numPages);
 
     return RC_OK;
 }
@@ -179,6 +186,9 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
 
     data->fixCount[position]++;
 
+    //Update LRU stats
+    moveToBack(data->lruStat,position);
+
     return RC_OK;
 }
 
@@ -186,6 +196,18 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
 int freeFrame(int pageNum,ReplacementStrategy strategy,MgmtData data,BM_BufferPool *const bm){
     //Decide position
     //Todo: Now always return zero
+
+    int position = -1;
+    switch(strategy){
+        case RS_LRU:
+
+            while(position<0){
+                
+            }
+
+
+            break;
+    }
     int pos = 0;
 
     //Check if dirty
