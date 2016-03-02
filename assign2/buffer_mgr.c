@@ -257,13 +257,12 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
     SM_FileHandle fHandle;
     //Check if page exists in buffer
     int y=0;
-    int position=-1;
+
     for(y;y<bm->numPages;y++)
     {
-        BM_PageHandle *temp = data->buffer[y];
-        if(temp != NULL && temp->pageNum== pageNum){
-            position= y;
-            writeBlock(data->buffer[y]->pageNum,&fHandle,data->buffer[y]->data);
+        BM_PageHandle *temp = mgmtData->buffer[y];
+        if(temp != NULL && temp->pageNum== page->pageNum){
+            writeBlock(mgmtData->buffer[y]->pageNum,&fHandle,mgmtData->buffer[y]->data);
             
         }
     }
