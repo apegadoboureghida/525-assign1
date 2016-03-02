@@ -163,7 +163,6 @@ RC destroyPageFile(char *fileName) {
 
     if(fp==0)
     {
-        printf("file Not found");
         fclose(fp);
         return RC_FILE_NOT_FOUND;
     }
@@ -423,7 +422,6 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
         fclose(fp);
         return  RC_WRITE_FAILED;
     }
-    printf("writing: %c\n",memPage[0]);
 
     fclose(fp);
 

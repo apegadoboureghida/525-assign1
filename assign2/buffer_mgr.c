@@ -66,7 +66,6 @@ RC shutdownBufferPool(BM_BufferPool *const bm) {
          return RC_WRITE_FAILED;
         }
     }
-
     //Move all dirty pages to hard disk.
     forceFlushPool(bm);
 
@@ -75,16 +74,16 @@ RC shutdownBufferPool(BM_BufferPool *const bm) {
 
 
 RC forceFlushPool(BM_BufferPool *const bm) {
+
     MgmtData *data=bm->mgmtData;
-    const int numPages;
-    BM_PageHandle *const page;
+
     SM_FileHandle fHandle;
     int i=0;
     for(i;i<bm->numPages;i++)
     {
         if(data->fixCount[i]==0 && data->dirtyPin[i]== true)
         {
-        writeBlock(numPages,&fHandle,page->data);
+        writeBlock(data->buffer[i]->pageNum,&fHandle,data->buffer[i]->data);
         data->dirtyPin[i]==false;
         }
     }
@@ -93,6 +92,7 @@ RC forceFlushPool(BM_BufferPool *const bm) {
 }
 
 RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
+
     MgmtData *data = bm->mgmtData;
     int y=0;
     int position = -1;
@@ -103,13 +103,14 @@ RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
             position= y;
         }
     }
+    if(position >= 0){
 
-    if(position > 0){
         data->dirtyPin[position] = true;
         return RC_OK;
     }else{
         return RC_READ_NON_EXISTING_PAGE;
     }
+
 }
 
 RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
@@ -158,12 +159,17 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
 
     //If page not exist
     if(position == -1){
-        position =freeFrame(pageNum,bm->strategy,*data);
+        position =freeFrame(pageNum,bm->strategy,*data,bm);
         page->data = (char *) malloc(PAGE_SIZE);
         //writeBlock(position,&fileHandle,page->data);
         //Fifo Stats
-        int result = readBlock(pageNum,&fileHandle,page->data);
-        data->buffer[position] = page;
+        BM_PageHandle *actualPage = (BM_PageHandle *) malloc(sizeof(BM_PageHandle));
+        actualPage->data = (char*) malloc(sizeof(page->data));
+        int result = readBlock(pageNum,&fileHandle,actualPage->data);
+        actualPage->pageNum = pageNum;
+        data->buffer[position] = actualPage;
+        page->data = actualPage->data;
+        page->pageNum=actualPage->pageNum;
         //data->frameRef[position]=pageNum;
     }else{
         page->data = data->buffer[position]->data;
@@ -177,7 +183,7 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
 }
 
 //Todo
-int freeFrame(int pageNum,ReplacementStrategy strategy,MgmtData data){
+int freeFrame(int pageNum,ReplacementStrategy strategy,MgmtData data,BM_BufferPool *const bm){
     //Decide position
     //Todo: Now always return zero
     int pos = 0;
@@ -185,7 +191,7 @@ int freeFrame(int pageNum,ReplacementStrategy strategy,MgmtData data){
     //Check if dirty
     if(data.dirtyPin[pos]){
         //Todo:if dirty back to memory
-
+        forceFlushPool(bm);
     }
     //return position
     return 0;
