@@ -244,8 +244,23 @@ RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
 
 }
 
+
 RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
-    return 0;
+    MgmtData *mgmtData = bm->mgmtData;
+    SM_FileHandle fHandle;
+    //Check if page exists in buffer
+    int y=0;
+    int position=-1;
+    for(y;y<bm->numPages;y++)
+    {
+        BM_PageHandle *temp = data->buffer[y];
+        if(temp != NULL && temp->pageNum== pageNum){
+            position= y;
+            writeBlock(data->buffer[y]->pageNum,&fHandle,data->buffer[y]->data);
+            
+        }
+    }
+    return RC_OK;
 }
 
 RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber pageNum) {
