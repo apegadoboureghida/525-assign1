@@ -10,14 +10,14 @@
 typedef struct MgmtData {
     SM_FileHandle fHandle;
 
-    int *fixCount;
-    bool *dirtyPin;
-    int readIO;
-    int writeIO;
-    int *fifoStat;
-    int *lruStat;
-    int readBuff;
-    BM_PageHandle **buffer;
+    int *fixCount ; //Array of size numPages Fix counter
+    bool *dirtyPin; // Dirty page
+    int readIO; // ReadIO counter
+    int writeIO; // WriteIO counter
+    int *fifoStat; // fifo stats
+    int *lruStat; // lru stats
+    int readBuff; // Read from buffer counter
+    BM_PageHandle **buffer; // Buffer data
 } MgmtData;
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const int numPages,
@@ -32,17 +32,11 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     if(result!=0)
         return result;
 
-    //result = ensureCapacity(PAGES,fHandle);
-
-    if(result!=0)
-        return result;
-
     char *fileName ;
     fileName = malloc(sizeof(char) * strlen(pageFileName));
     strcpy(fileName, pageFileName);
 
-    int numero =numPages;
-    bm->numPages=numero;
+    bm->numPages=numPages;
     bm->pageFile= fileName;
     bm->strategy = strategy;
     bm->mgmtData=stratData;
@@ -90,14 +84,18 @@ RC forceFlushPool(BM_BufferPool *const bm) {
     MgmtData *data=bm->mgmtData;
 
     SM_FileHandle *fHandle = (SM_FileHandle *) malloc(sizeof(fHandle));
-    openPageFile(bm->pageFile,fHandle);
+    int result = openPageFile(bm->pageFile,fHandle);
+    if(result!=0)
+        return result;
     int i=0;
     for(i;i<bm->numPages;i++)
     {
 
         if(data->fixCount[i]==0 && data->dirtyPin[i]== true)
         {
-            writeBlock(data->buffer[i]->pageNum,fHandle,data->buffer[i]->data);
+            result = writeBlock(data->buffer[i]->pageNum,fHandle,data->buffer[i]->data);
+            if(result!=0)
+                return result;
             data->dirtyPin[i]=false;
             data->writeIO++;
         }
@@ -144,7 +142,7 @@ RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
 
         return RC_OK;
     }else{
-        return -1;
+        return RC_READ_NON_EXISTING_PAGE;
     }
 
 
@@ -153,11 +151,14 @@ RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
 RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
 
     SM_FileHandle *fHandle = (SM_FileHandle *) malloc(sizeof(fHandle));
-    openPageFile(bm->pageFile,fHandle);
-
+    int result = openPageFile(bm->pageFile,fHandle);
+    if(result!=0)
+        return result;
     writeBlock(page->pageNum,fHandle,page->data);
 
 
+    MgmtData *data = bm->mgmtData;
+    data->writeIO++;
     return RC_OK;
 }
 
@@ -169,8 +170,9 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
     int position=-1;
     MgmtData *data = bm->mgmtData;
     SM_FileHandle *fHandle = (SM_FileHandle *) malloc(sizeof(fHandle));
-    openPageFile(bm->pageFile,fHandle);
-
+    int result = openPageFile(bm->pageFile,fHandle);
+    if(result!=0)
+        return result;
 
     for(y;y<bm->numPages;y++)
     {
@@ -190,12 +192,10 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
             ensureCapacity(pageNum+1,fHandle);
         }
         //Fifo Stats
-        int result = readBlock(pageNum,fHandle,page2->data);
+        readBlock(pageNum,fHandle,page2->data);
 
         data->fifoStat[position]=data->readIO++;
         data->buffer[position] = page2;
-    }else{
-        //page = data->buffer[position];
     }
 
     page->data = data->buffer[position]->data;
@@ -244,10 +244,8 @@ int freeFrame(int pageNum,BM_BufferPool *const bm){
     //Check if dirty
     if(data->dirtyPin[position]){
         //Todo:if dirty back to memory
-        //forceFlushPool(bm);
         forcePage(bm,data->buffer[position]);
         data->dirtyPin[position] = false;
-        data->writeIO++;
     };
     return position;
 
