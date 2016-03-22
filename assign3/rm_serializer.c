@@ -96,8 +96,8 @@ serializeTableContent(RM_TableData *rel)
     APPEND(result, "%s%s", (i != 0) ? ", " : "", rel->schema->attrNames[i]);
 
   startScan(rel, sc, NULL);
-  
-  while(next(sc, r) != RC_RM_NO_MORE_TUPLES) 
+
+  while(next(sc, r) != RC_RM_NO_MORE_TUPLES)
     {
     APPEND_STRING(result,serializeRecord(r, rel->schema));
     APPEND_STRING(result,"\n");
