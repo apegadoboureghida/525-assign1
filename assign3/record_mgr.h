@@ -12,6 +12,7 @@ typedef struct RM_ScanHandle
   void *mgmtData;
 } RM_ScanHandle;
 
+Schema *deserializeSchema(char *serializedSchemaData);
 // table and manager
 extern RC initRecordManager (void *mgmtData);
 extern RC shutdownRecordManager ();

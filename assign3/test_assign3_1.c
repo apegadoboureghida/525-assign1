@@ -78,12 +78,12 @@ main (void)
   testName = "";
 
   testInsertManyRecords();
-  testRecords();
+  /*testRecords();
   testCreateTableAndInsert();
   testUpdateTable();
   testScans();
   testScansTwo();
-  testMultipleScans();
+  testMultipleScans();*/
 
   return 0;
 }
@@ -386,8 +386,10 @@ testInsertManyRecords(void)
       realInserts[i] = inserts[i%10];
       realInserts[i].a = i;
       r = fromTestRecord(schema, realInserts[i]);
-      TEST_CHECK(insertRecord(table,r)); 
+      TEST_CHECK(insertRecord(table,r));
+      printf("t1\n");
       rids[i] = r->id;
+      printf("t2\n");
     }
   TEST_CHECK(closeTable(table));
   TEST_CHECK(openTable(table, "test_table_t"));
