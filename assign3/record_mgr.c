@@ -137,6 +137,67 @@ int getNumTuples(RM_TableData *rel) {
 int insertRecord(RM_TableData *rel, Record *record) {
     //Todo add new tuple.
     printf("insert record\n");
+    
+    //Create a record variable
+	Record *r = (Record *)malloc(sizeof(Record));
+
+	RID rid;
+	rid.page = 1;
+	rid.slot = 0;
+
+	//Find the next place of insertion of a record
+	while(rid.page > 0 && rid.page < totalPages)
+	{
+		rid.page = rid.page + 1;
+		rid.slot = 0;
+
+		/*getRecord(rel, rid, r); //obtaining the record from the table
+		//checking for soft delete record in the table space for insertion
+		if(strncmp(r->data, "DELETED_RECORD", 14) == 0)
+			break;*/
+	}
+
+
+	r = NULL;
+	free(r); //free the memory of r which was just a temporary allocation
+
+	//mark the page as free page
+	((RM_RecordMgmt *)rel->mgmtData)->freePages[0] = rid.page;
+
+	//create a page handle
+	BM_PageHandle *page = MAKE_PAGE_HANDLE();
+
+	//assign the record, its RID and slot number
+	record->id.page = ((RM_RecordMgmt *)rel->mgmtData)->freePages[0];
+	record->id.slot = 0;
+
+	//Serialize the Record to be inserted
+	char * serializedRecord = serializeRecord(record, rel->schema);
+
+	//Pin the record page, to mark that it is in use
+	pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, ((RM_RecordMgmt *)rel->mgmtData)->freePages[0]);
+
+	//insert the new record data, into the Table i.e. Pages of the PageFile
+	memset(page->data, '\0', strlen(page->data));
+	sprintf(page->data, "%s", serializedRecord);
+
+	//mark the page as Dirty Page, as now there is a new record entry on that page
+	markDirty(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+	//Unpin the page as now it has been used
+	unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+	//Force Page to push entire data onto the page
+	forcePage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+	//printf("record data: %s\n", page->data);
+
+	free(page);		//free page, avoid memory leaks
+
+	((RM_RecordMgmt *)rel->mgmtData)->freePages[0] += 1;
+
+	totalPages++;
+	return RC_OK;
 
 
 
@@ -145,33 +206,156 @@ int insertRecord(RM_TableData *rel, Record *record) {
 
 int deleteRecord(RM_TableData *rel,RID id) {
     //Todo delete tuple.
+    
+    char deleteTombStomeFlag[14] = "DELETED_RECORD";	//Tombstone flag
+
+	char *temp = (char*)malloc(sizeof(char*));			//temp memory allocation to preappend the flag
+
+	if(id.page > 0 && id.page <=  totalPages)
+	{
+		BM_PageHandle *page = MAKE_PAGE_HANDLE();
+
+		//Pin page, to mark it in USE
+		pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, id.page);
+
+		//attach the flag to deletedRecord
+		strcpy(temp, deleteTombStomeFlag);
+		strcat(temp, page->data);
+
+		//set pageNum
+		page->pageNum = id.page;
+
+		//copy the new data onto the Page i.e. modify the page->data
+		memset(page->data, '\0', strlen(page->data));
+		sprintf(page->data, "%s", temp);
+
+		//marking the page dirty, as new data has been written, i.e. tombstone data
+		markDirty(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		//unpin page, after use
+		unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		//write the new data onto the page, in the pageFile
+		forcePage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		page = NULL;
+		free(page);		//free page, avoid leaks
+		return RC_OK;
+	}
+	else
+	{
+		return RC_RM_NO_MORE_TUPLES;
+	}
+
+	return RC_OK;
+    
+    
     return 0;
 }
 
 int updateRecord(RM_TableData *rel, Record *record) {
+
+//Find the data to be updated
+	if(record->id.page > 0 && record->id.page <=  totalPages)
+	{
+		BM_PageHandle *page = MAKE_PAGE_HANDLE();
+
+		int pageNum, slotNum;
+
+		// Setting record id and slot number
+		pageNum = record->id.page;
+		slotNum = record->id.slot;
+
+		//Compare if the record is a deleted Record,
+		//return update not possible for deleted records (EC 401)
+
+		if(strncmp(record->data, "DELETED_RECORD", 14) == 0)
+			return RC_RM_UPDATE_NOT_POSSIBLE_ON_DELETED_RECORD;
+
+		//Take the serailized updated record data
+		char *record_str = serializeRecord(record, rel->schema);
+
+		//pin page
+		pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, record->id.page);
+
+		//set the new fields, or the entire modified page
+		memset(page->data, '\0', strlen(page->data));
+		sprintf(page->data, "%s", record_str);
+
+		//free the temp data
+		free(record_str);
+
+		//mark the page as dirty
+		markDirty(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		//unpin the page, after use
+		unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		//force write onto the page, as it is modified page now
+		forcePage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		//printf("record data in update: %s\n", page->data);
+
+		free(page);		//free page, avoid leaks
+		return RC_OK;
+	}
+	else
+	{
+		return RC_RM_NO_MORE_TUPLES;	//return the data to be modfied not found
+	}
+
+	return RC_OK;
 
     return 0;
 }
 
 int getRecord(RM_TableData *rel,RID id,Record *record) {
 
-    BM_PageHandle *bm = MAKE_PAGE_HANDLE();
-    int result = pinPage(rel->mgmtData,bm,id.page);
+     //New code
+    
+    //find the record in the record table
+	if(id.page > 0 && id.page <=  totalPages)
+	{
+		//make a page handle
+		BM_PageHandle *page = MAKE_PAGE_HANDLE();
 
-    if(result != RC_OK) return result;
+		//pin page, and mark it for use
+		pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, id.page);
 
-    char *pointer = bm->data+(getRecordSize(rel->schema)*id.slot);
-    printf("gR3 = %s,%d\n",bm->data,getRecordSize(rel->schema));
+		//temp, to store the record data
+		char *record_data = (char*)malloc(sizeof(char) * strlen(page->data));
 
+		//copy the data
+		strcpy(record_data,page->data);
 
-    memcpy(record->data,pointer,getRecordSize(rel->schema));
-    record->id=id;
-    printf("gR4\n");
-    result = unpinPage(rel->mgmtData,bm);
+		//printf("Page data is: %s",record_data);
 
-    if(result != RC_OK) return result;
-    printf("gR5\n");
-    return RC_OK;
+		//store the record data and id
+		record->id = id;
+
+		//deSerialze the data
+		Record* deSerializedRecord = deserializeRecord(record_data,rel->schema);
+
+		//unpin the page, after fetching the record
+		unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+		//return the new data
+		record->data = deSerializedRecord->data;
+
+		//printf("Record Data in getRecord: %s\n",record->data);
+
+		//free temp. allocations to avoid memory leaks
+		free(deSerializedRecord);
+		free(page);
+
+		return RC_OK;
+	}
+	else		//if record not found return RC_RM_NO_MORE_TUPLES
+	{
+		return RC_RM_NO_MORE_TUPLES;
+	}
+
+	return RC_OK;
 }
 
 // scans
