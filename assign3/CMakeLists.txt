@@ -12,6 +12,6 @@ set(SOURCE_FILES
     dt.h
     storage_mgr.h
     test_assign2_1.c
-    test_helper.h record_mgr.c aux.c)
+    test_helper.h record_mgr.old.c.old aux.c record_mgr.c)
 
 add_executable(assign2 ${SOURCE_FILES})

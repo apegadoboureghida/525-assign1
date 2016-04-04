@@ -57,9 +57,9 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
     if(result!=0)
         return result;
 
-    char *fileName ;
-    fileName = malloc(sizeof(char) * strlen(pageFileName));
+    char *fileName = (char *) malloc((strlen(pageFileName)+1));
     strcpy(fileName, pageFileName);
+
 
     bm->numPages=numPages;
     bm->pageFile= fileName;
@@ -164,6 +164,8 @@ RC forceFlushPool(BM_BufferPool *const bm) {
             data->writeIO++;
         }
     }
+
+    free(fHandle);
 
     return RC_OK;
 }
@@ -283,6 +285,8 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
 
     MgmtData *data = bm->mgmtData;
     data->writeIO++;
+
+    free(fHandle);
     return RC_OK;
 }
 /*
@@ -310,16 +314,20 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
  */
 RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber pageNum) {
 
-
+    printf("0.1\n");
     //Check if it's already on buffer;
     int y= 0;
     int position=-1;
     MgmtData *data = bm->mgmtData;
+    printf("0.2\n");
     SM_FileHandle *fHandle = (SM_FileHandle *) malloc(sizeof(fHandle));
+    printf("0.3 %s\n",bm->pageFile);
     int result = openPageFile(bm->pageFile,fHandle);
+    printf("0.4\n");
     if(result!=0)
         return result;
 
+    printf("1\n");
     for(y;y<bm->numPages;y++)
     {
         BM_PageHandle *temp = data->buffer[y];
@@ -327,12 +335,13 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
             position= y;
         }
     }
-    BM_PageHandle *page2 = (BM_PageHandle *) malloc(sizeof(BM_PageHandle));
+    printf("2\n");
+    BM_PageHandle *page2 = (BM_PageHandle *) calloc(1,sizeof(BM_PageHandle));
     //If page not exist
     if(position == -1){
         position =freeFrame(pageNum,bm);
 
-        page2->data = (char *) malloc(PAGE_SIZE);
+        page2->data = (char *) calloc(1,PAGE_SIZE);
         page2->pageNum=pageNum;
         if(fHandle->totalNumPages<pageNum) {
             ensureCapacity(pageNum+1,fHandle);
@@ -343,12 +352,14 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
         data->fifoStat[position]=data->readIO++;
         data->buffer[position] = page2;
     }
-
+    printf("3\n");
     page->data = data->buffer[position]->data;
     page->pageNum = data->buffer[position]->pageNum;
     data->fixCount[position]++;
 
     data->lruStat[position] = ++data->readBuff;
+
+    free(fHandle);
     return RC_OK;
 }
 

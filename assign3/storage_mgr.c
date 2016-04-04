@@ -78,25 +78,30 @@ RC createPageFile(char *fileName) {
  *      01/31/2016  Mansi Malviya   Initialization
  */
 RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
+
+    printf("op1\n");
     //r+ opening in the beginning
     FILE *fp=fopen(fileName, "r");
 
     if(fp == NULL){
         return RC_FILE_NOT_FOUND;
     }
-
+    printf("op2\n");
     //totalNumPages
     int totalNumPages;
     fseek(fp, 0L, SEEK_END);
     totalNumPages = ftell(fp);
     totalNumPages = totalNumPages/PAGE_SIZE;
-
+    printf("op3\n");
     //Initializing fHandle with page data.
     fHandle->totalNumPages=totalNumPages;
+    printf("op3\n");
     fHandle->curPagePos=0;
+    printf("op3\n");
     fHandle->fileName=fileName;
-
+    printf("op3\n");
     fclose(fp);
+    printf("op4\n");
     return RC_OK;
 }
 

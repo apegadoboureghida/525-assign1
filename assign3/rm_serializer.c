@@ -91,20 +91,15 @@ serializeTableContent(RM_TableData *rel)
   RM_ScanHandle *sc = (RM_ScanHandle *) malloc(sizeof(RM_ScanHandle));
   Record *r = (Record *) malloc(sizeof(Record));
   MAKE_VARSTRING(result);
-printf("1\n");
   for(i = 0; i < rel->schema->numAttr; i++)
     APPEND(result, "%s%s", (i != 0) ? ", " : "", rel->schema->attrNames[i]);
-    printf("2\n");
   startScan(rel, sc, NULL);
-    printf("3\n");
   while(next(sc, r) != RC_RM_NO_MORE_TUPLES)
     {
     APPEND_STRING(result,serializeRecord(r, rel->schema));
     APPEND_STRING(result,"\n");
     }
-    printf("4\n");
   closeScan(sc);
-    printf("5\n");
   RETURN_STRING(result);
 }
 
@@ -155,17 +150,13 @@ serializeRecord(Record *record, Schema *schema)
   VarString *result;
   MAKE_VARSTRING(result);
   int i;
-  
   APPEND(result, "[%i-%i] (", record->id.page, record->id.slot);
-
   for(i = 0; i < schema->numAttr; i++)
     {
       APPEND_STRING(result, serializeAttr (record, schema, i));
       APPEND(result, "%s", (i == 0) ? "" : ",");
     }
-  
   APPEND_STRING(result, ")");
-
   RETURN_STRING(result);
 }
 

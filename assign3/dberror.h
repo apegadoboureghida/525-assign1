@@ -23,10 +23,13 @@ typedef int RC;
 #define RC_RM_NO_PRINT_FOR_DATATYPE 204
 #define RC_RM_UNKOWN_DATATYPE 205
 
+#define RC_RM_UPDATE_NOT_POSSIBLE_ON_DELETED_RECORD 206 //Todo change!!
+
 #define RC_IM_KEY_NOT_FOUND 300
 #define RC_IM_KEY_ALREADY_EXISTS 301
 #define RC_IM_N_TO_LAGE 302
 #define RC_IM_NO_MORE_ENTRIES 303
+
 
 /* holder for error messages */
 extern char *RC_message;
