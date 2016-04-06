@@ -171,14 +171,9 @@ RC openTable (RM_TableData *rel, char *name)
     FILE *fptr;	//FILE pointer
     fptr = fopen(name, "r+");	//Open the PageFile (Table)
 
-    //Get the total Number of Pages in the page File
-    char* readHeader;
-    readHeader = (char*)calloc(PAGE_SIZE,sizeof(char));
-
-    fgets(readHeader,PAGE_SIZE,fptr);
-
-    char* totalPage;
-    totalPage = readHeader;
+    if(fptr == NULL){
+        return RC_FILE_NOT_FOUND;
+    }
 
     //Make a Buffer Pool
     rm_mgmt->bm = MAKE_POOL();
@@ -188,7 +183,14 @@ RC openTable (RM_TableData *rel, char *name)
 
     //Initialize the BufferPool
     initBufferPool(rm_mgmt->bm,name,6,RS_FIFO,NULL);
-    totalPages = rm_mgmt->bm->numPages;
+
+
+    //totalNumPages
+    int totalNumPages;
+    fseek(fptr, 0L, SEEK_END);
+    totalNumPages =(int) ftell(fptr);
+    totalPages = totalNumPages/PAGE_SIZE;
+
     //Pin the Page = 0, which has the Schema Information
     pinPage(rm_mgmt->bm,page,0);
 
@@ -208,8 +210,8 @@ RC openTable (RM_TableData *rel, char *name)
     rel->mgmtData = rm_mgmt;
 
     //Free the temp. memory allocations
-    free(readHeader);
     free(page);
+    fclose(fptr);
 
     return RC_OK;
 }
@@ -361,6 +363,7 @@ RC insertRecord (RM_TableData *rel, Record *record)
     ((RM_RecordMgmt *)rel->mgmtData)->freePages[0] += 1;
 
     totalPages++;
+
     return RC_OK;
 }
 
@@ -487,7 +490,6 @@ RC updateRecord (RM_TableData *rel, Record *record)
 RC getRecord(RM_TableData *rel, RID id, Record *record)
 {
 
-
     //find the record in the record table
     if(id.page > 0)// && id.page <=  totalPages)
     {
@@ -516,7 +518,6 @@ RC getRecord(RM_TableData *rel, RID id, Record *record)
     }
     else
     {
-        printf("No more tuples\n");
         return RC_RM_NO_MORE_TUPLES;
     }
 
@@ -533,11 +534,10 @@ RC getRecord(RM_TableData *rel, RID id, Record *record)
  */
 RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond)
 {
-
-    printf("StartScan\n");
     //using Scan Handle Structure & init its attributes
     scan->rel = rel;
-    totalPages = ((RM_RecordMgmt*)rel->mgmtData)->bm->numPages;
+    //totalPages = ((RM_RecordMgmt*)rel->mgmtData)->bm->numPages;
+
     //Initialize the created Scan Management Structure
     RM_ScanMgmt *scan_mgmt = (RM_ScanMgmt*)malloc(sizeof(RM_ScanMgmt));
     scan_mgmt->condn = cond;
@@ -548,7 +548,6 @@ RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond)
     //store the managememt data
     scan->mgmtData = scan_mgmt;
 
-    printf("End StartScan\n");
     return RC_OK;
 }
 
@@ -993,10 +992,7 @@ Record* deserializeRecord(char *string, Schema *schema)
     Value *value;
     Record *record;
     createRecord(&record,schema);
-    int temp;
-    for (temp = 0; temp< PAGE_SIZE;temp++){
-        printf("%c",string[temp]);
-    }
+
     char *splitStart, *splitEnd;
     splitStart = strtok(string,"(");
     for(i=0;i< schema->numAttr;i++)
