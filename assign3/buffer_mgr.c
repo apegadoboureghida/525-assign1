@@ -176,10 +176,10 @@ RC forceFlushPool(BM_BufferPool *const bm) {
  *      It marks the page dirty.
  *      Checks for each page on buffer using page handle if not null then marks it dirty.
  *      Updates the dirtyPin array witht he position of page.
- *       
+ *
  * Parameters:
  *      BM_BufferPool *const bm: Buffer pool object
- *	BM_PageHandle *const page: Buffer pool page handle 
+ *	BM_PageHandle *const page: Buffer pool page handle
  *
  * Return:
  *      RC: Returned Code
@@ -216,10 +216,10 @@ RC markDirty(BM_BufferPool *const bm, BM_PageHandle *const page) {
  *      Unpins a particular page from buffer.
  *      Takes pageNum as page to be unpinned from buffer.
  *      Updates the fixCount to decrease the position.
- *       
+ *
  * Parameters:
  *      BM_BufferPool *const bm: Buffer pool object
- *	BM_PageHandle *const page: Buffer pool page handle 
+ *	BM_PageHandle *const page: Buffer pool page handle
  *
  * Return:
  *      RC: Returned Code
@@ -260,10 +260,10 @@ RC unpinPage(BM_BufferPool *const bm, BM_PageHandle *const page) {
  *      Writes the current content of the page back to disk.
  *      Checks for page existence in buffer.
  *      Write the data from buffer to disk.
- *       
+ *
  * Parameters:
  *      BM_BufferPool *const bm: Buffer pool object
- *	BM_PageHandle *const page: Buffer pool page handle 
+ *	BM_PageHandle *const page: Buffer pool page handle
  *
  * Return:
  *      RC: Returned Code
@@ -296,10 +296,10 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
  *      Pins the page in buffer with the pageNum.
  *      Checks for page existence in buffer if it existes then mark the position.
  *      Uses freeFrame for strategy, allocates memory,read the data from pageNum and pin it in buffer.
- *       
+ *
  * Parameters:
  *      BM_BufferPool *const bm: Buffer pool object
- *	BM_PageHandle *const page: Buffer pool page handle 
+ *	BM_PageHandle *const page: Buffer pool page handle
  *	const PageNumber pageNum: Number of the page to be pinned.
  *
  * Return:
@@ -314,20 +314,15 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
  */
 RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber pageNum) {
 
-    printf("0.1\n");
     //Check if it's already on buffer;
     int y= 0;
     int position=-1;
     MgmtData *data = bm->mgmtData;
-    printf("0.2\n");
-    SM_FileHandle *fHandle = (SM_FileHandle *) malloc(sizeof(fHandle));
-    printf("0.3 %s\n",bm->pageFile);
+    SM_FileHandle *fHandle = (SM_FileHandle *) malloc(sizeof(fHandle)+10);
     int result = openPageFile(bm->pageFile,fHandle);
-    printf("0.4\n");
     if(result!=0)
         return result;
 
-    printf("1\n");
     for(y;y<bm->numPages;y++)
     {
         BM_PageHandle *temp = data->buffer[y];
@@ -335,7 +330,6 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
             position= y;
         }
     }
-    printf("2\n");
     BM_PageHandle *page2 = (BM_PageHandle *) calloc(1,sizeof(BM_PageHandle));
     //If page not exist
     if(position == -1){
@@ -352,7 +346,6 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
         data->fifoStat[position]=data->readIO++;
         data->buffer[position] = page2;
     }
-    printf("3\n");
     page->data = data->buffer[position]->data;
     page->pageNum = data->buffer[position]->pageNum;
     data->fixCount[position]++;
@@ -527,10 +520,10 @@ int *getFixCounts(BM_BufferPool *const bm) {
  */
 int getNumReadIO(BM_BufferPool *const bm) {
 
-        MgmtData *data=bm->mgmtData;
+    MgmtData *data=bm->mgmtData;
 
 
-        return data->readIO;
+    return data->readIO;
 }
 /*
  * Function Name: getNumReadIO

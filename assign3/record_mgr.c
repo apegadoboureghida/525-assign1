@@ -1,220 +1,434 @@
-//
-// Created by drow on 3/04/16.
-//
+/*
+ * This assignment is used to create a RECORD MANAGER which handles Tables with some fixed Schema.
+ * This file record_mgr.c allows to insert records, delete_records, update_records and Scan through the records.
+ * The design implements storing each table in a new pagefile & accessing of these pageFiles (Table) is done
+ * using the Buffer Manager
+ */
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include "unistd.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include "record_mgr.h"
-#include "storage_mgr.h"
 #include "buffer_mgr.h"
+#include "storage_mgr.h"
+#include "record_mgr.h"
+#include "expr.h"
 
+
+//Struct to store Table Information
+typedef struct RM_TableInfo
+{
+    int numOfTuples;
+    int schemaSize;
+
+}RM_TableInfo;
+
+//struct for RECORD MANGER INFORMATION
 typedef struct RM_RecordMgmt
 {
-    BM_BufferPool *bm;
-    int *freePages;
-}RM_RecordMgmt;
+    BM_BufferPool *bm;	//Buffer Pool Management Information & its attributes
+    int *freePages;		//store the freePages details
 
-// table and manager
-extern RC initRecordManager (void *mgmtData){
-    return RC_OK;
-}
+} RM_RecordMgmt;
 
-extern RC shutdownRecordManager (){
-    return RC_OK;
-}
+//struct for RECORD SCAN MANAGEMENT INFORMATION
+typedef struct RM_ScanMgmt
+{
+    Expr *condn;				//The scan Condition associated with every Scan
+    Record *currentRecord;		//helps to find the current record
+    int currentPage;			//used to store current page that is scanned info
+    int currentSlot;			//used to store current slot that is scanned info
 
-RC createTable (char *name, Schema *schema){
-    printf("1\n");
+}RM_ScanMgmt;
 
-    //creating page file
-    initStorageManager();
-    int result = createPageFile(name);
+int totalPages;		//Global Variable to store the 'TOTAL NUMBER OF PAGES IN A PAGE FILE'
 
-    if(result != RC_OK) return result;
+/*
+ * This method is used to calculate the Offset associated
+ * with every attribute, this is done by getting the size for each of these
+ * for string we take the length of the String
+ */
+RC attrOffset (Schema *schema, int attrNum, int *result)
+{
+    int offset = 0;		//store the OFFSET calculated
+    int attrPosition = 0;	//variable used to loop through all the attributes
 
-    //Init buffer pool.
-    BM_BufferPool *bm = MAKE_POOL();
-
-    result = initBufferPool(bm,name,3,RS_FIFO,NULL);
-    if(result != RC_OK) return result;
-    /*
-    if(schema == NULL){
-        printf("Schema is Null\n");
-        schema = (Schema *) malloc(sizeof(Schema));
+    //for all the attributes there, find the offset, based on its DataTypes
+    for(attrPosition = 0; attrPosition < attrNum; attrPosition++)
+    {
+        switch (schema->dataTypes[attrPosition])
+        {
+            case DT_STRING:
+                offset += schema->typeLength[attrPosition];		//String add the typeLenghth to the offset
+                break;
+            case DT_INT:
+                offset += sizeof(int);
+                break;
+            case DT_FLOAT:
+                offset += sizeof(float);
+                break;
+            case DT_BOOL:
+                offset += sizeof(bool);
+                break;
+        }
     }
-*/
-    printf("schema:\n");
-    printf("schema: %d\n",schema->numAttr);
-    //Page 0 store table information
-    char *serializedSchema= serializeSchema(schema);
 
-    printf("Schema:\n %s\n",serializedSchema);
-    BM_PageHandle *ph = MAKE_PAGE_HANDLE();
-
-    ph->data= (char*)malloc(sizeof(PAGE_SIZE));
-    ph->pageNum=0;
-
-    pinPage(bm,ph,0); //Todo check RC_OK
-    memcpy(ph->data,serializedSchema,PAGE_SIZE);
-    markDirty(bm,ph); //Todo check RC_OK
-    unpinPage(bm,ph); //Todo check RC_OK
-    //Closing bufferPool.
-    shutdownBufferPool(bm);
-
-    free(ph->data);
-    free(ph);
-
+    *result = offset;	//commit the final calculated offset in the result variable
     return RC_OK;
 }
 
-extern RC openTable (RM_TableData *rel, char *name){
-    RM_RecordMgmt *rm_mgmt = (RM_RecordMgmt *)malloc(sizeof(RM_RecordMgmt));
+/*TABLE AND RECORD MANAGER FUNCTIOS*/
 
-    BM_BufferPool *bm = MAKE_POOL();
+/*
+ * This method is used to Initialise a record manager
+ */
+RC initRecordManager (void *mgmtData)
+{
+    /*
+     * All the initializations are done,
+     * nothing to be done here
+     */
+    return RC_OK;
+}
 
-    int result = initBufferPool(bm,name,3,RS_FIFO,NULL);
-    if(result != RC_OK) return result;
-    BM_PageHandle *ph = MAKE_PAGE_HANDLE();
-    ph->data= (char*)malloc(sizeof(PAGE_SIZE));
-    ph->pageNum=0;
+/*
+ * This method is used to Shutdown a record Manger
+ */
+RC shutdownRecordManager ()
+{
+    /*
+     * All the memory free'ing is done while, allocation
+     * Nothing to be done here
+     */
+    return RC_OK;
+}
 
+/*
+ * This function is used to Create a Table,
+ * and also used to store the Information about the schema
+ */
+RC createTable (char *name, Schema *schema)
+{
+    remove(name);
+    //File handle from Storage Manager
+    SM_FileHandle fh;
 
-    result =pinPage(bm,ph,0);
-    if(result != RC_OK) return result;
+    char *serializedData;	//data is stored in a serialized format in this variable
 
-    //Todo read schema
-    rel->schema = (Schema*) malloc(sizeof(Schema));
+    /*
+     * using access to check whether a Table can be accessed,
+     * this access is specified with a existence test F_OK,
+     * Checks whether Table with "name" alread exists
+     * If yes, it returns -1
+     */
+    if(access(name,F_OK)!= -1)
+    {
+        return -1;
+    }
 
-    rel->schema =  deserializeSchema(ph->data);
+    //Creating a PageFile with name as given in createTable (name, schema)
+    if(createPageFile(name)!=RC_OK)
+    {
+        return RC_FILE_NOT_FOUND;
+    }
+
+    //Open the pageFile
+    if(openPageFile(name,&fh)!=RC_OK)
+    {
+        return RC_FILE_NOT_FOUND;
+    }
+
+    //Store the table Information & initialize its attributes
+    RM_TableInfo *tableInfo = (RM_TableInfo *)malloc(sizeof(RM_TableInfo));
+
+    tableInfo->schemaSize = 0;
+
+    /*The schema is now serialized using serializeSchema() function
+     * The first page of the file is used to store the entire Formatted (Serialized Schema)
+     */
+    serializedData = serializeSchema(schema);
+
+    //Write the serialized data ontot Page = 0
+    if(writeBlock(0,&fh,serializedData)!=RC_OK)
+    {
+        return RC_WRITE_FAILED;
+    }
+
+    return RC_OK;	//all steps executed correctly, and Table is created, return RC_OK
+}
+
+/*
+ * This function is used to Open a Created Table,
+ * for any operation to be performed, the table has to be opened first
+ * Also store the Schema related info by deserializing the schema,
+ * in the Table Data
+ */
+RC openTable (RM_TableData *rel, char *name)
+{
+    //Record Management to store record attributes
+    RM_RecordMgmt *rm_mgmt = (RM_RecordMgmt*)malloc(sizeof(RM_RecordMgmt));
+
+    FILE *fptr;	//FILE pointer
+    fptr = fopen(name, "r+");	//Open the PageFile (Table)
+
+    //Get the total Number of Pages in the page File
+    char* readHeader;
+    readHeader = (char*)calloc(PAGE_SIZE,sizeof(char));
+
+    fgets(readHeader,PAGE_SIZE,fptr);
+
+    char* totalPage;
+    totalPage = readHeader;
+
+    //Make a Buffer Pool
+    rm_mgmt->bm = MAKE_POOL();
+
+    //Make a Page Handle
+    BM_PageHandle *page = MAKE_PAGE_HANDLE();
+
+    //Initialize the BufferPool
+    initBufferPool(rm_mgmt->bm,name,6,RS_FIFO,NULL);
+    totalPages = rm_mgmt->bm->numPages;
+    //Pin the Page = 0, which has the Schema Information
+    pinPage(rm_mgmt->bm,page,0);
+
+    //FreePages are stored in an array
+    rm_mgmt->freePages = (int*)malloc(sizeof(int));
+    rm_mgmt->freePages[0] = totalPages;
+
+    //initialize the table data attributes
+
+    //Deserialzing the Schema gives us the Relation information (i.e. Schema info)
+    rel->schema = deserializeSchema(page->data);
+
+    //store the name of the schema
     rel->name = name;
+
+    //store the record management details
     rel->mgmtData = rm_mgmt;
 
-    result = unpinPage(bm,ph);
-    if(result != RC_OK) return result;
-
-    printf("Schema: \n%s\n",serializeSchema(rel->schema));
-
-    rm_mgmt->bm=bm;
-    return RC_OK;
-}
-
-extern RC closeTable (RM_TableData *rel){
-
-    shutdownBufferPool(((RM_RecordMgmt*)rel->mgmtData)->bm);
-    freeSchema(rel->schema);
+    //Free the temp. memory allocations
+    free(readHeader);
+    free(page);
 
     return RC_OK;
 }
 
-extern RC deleteTable (char *name){
-    return destroyPageFile(name);
-}
+/*
+ * This function is used to close the Table,
+ * after the Operations on the table is Completed
+ * In close, all the memory allocations are de-allocated,
+ * so as to avoid any memory leaks
+ */
+RC closeTable (RM_TableData *rel)
+{
+    //shutdownBufferPool
+    //shutdownBufferPool(((RM_RecordMgmt*)rel->mgmtData)->bm);
 
-extern RC deleteRecord (RM_TableData *rel, RID id){
-    //Todo all
+    //Free all the Table data allocations and the Schema
+    free(rel->mgmtData);
+
+    free(rel->schema->attrNames);
+    free(rel->schema->dataTypes);
+    free(rel->schema->keyAttrs);
+    free(rel->schema->typeLength);
+
+    free(rel->schema);
+
     return RC_OK;
 }
 
-int getNumTuples(RM_TableData *rel) {
-    //Todo Number tuples in table
-    int total=0;
+/*
+ * This fucntion is used to delete a created table,
+ * it is done by using destroyPageFile function
+ * from the BufferManger Implementation
+ */
+RC deleteTable (char *name)
+{
+    if(destroyPageFile(name)!=RC_OK)
+    {
+        return RC_FILE_NOT_FOUND;
+    }
 
-    Record *record;
+    return RC_OK;
+}
 
-    createRecord(&record,rel->schema);
-    RID id;
-    id.page=1;
-    id.slot=0;
+/*
+ * Used to get the Total Number of Tuples in the Table
+ */
+int getNumTuples (RM_TableData *rel)
+{
+    int countOfTuples = 0;		//to store the count of Total of number of Tuples
+    RC getSuccess;				//flag to mark the success of getting a record
 
-    int totalPages = ((BM_BufferPool*)rel->mgmtData)->numPages;
+    Record *record = (Record *)malloc(sizeof(Record));
+    RID rid;
 
-    while(id.page<totalPages){
-        int result = getRecord(rel,id,record);
+    rid.page = 1;
+    rid.slot = 0;
 
-        if(result == RC_OK) {
-            total++;
-            id.slot++;
-        }
-        else {
-            id.page++;
-            id.slot =0;
+    //count until we reach the end of the table i.e. last page in the pageFile
+    while(rid.page > 0 && rid.page < totalPages)
+    {
+        getSuccess = getRecord (rel, rid, record);
+
+        /*
+         * If fetching of record is Successfull, then increment the count
+         */
+        if(getSuccess == RC_OK)
+        {
+            countOfTuples++;
+
+            rid.page += 1;
+            rid.slot = 0;
         }
     }
 
-    freeRecord(record);
-    return total;
+    record = NULL;
+    free(record); // free record to avoid Memory leaks
+
+    return countOfTuples;// returning the count
 }
 
+/*
+ * HANDLING OF RECORDS IN A TABLE
+ */
 
-// handling records in a table
-RC insertRecord (RM_TableData *rel, Record *record){
+/*
+ * This function is used to insert a new Record into the table
+ * while inserting, the record Manager assigns a RID to the record
+ * and update the "record" parameter too
+ */
+RC insertRecord (RM_TableData *rel, Record *record)
+{
+    //Create a record variable
+    Record *r = (Record *)malloc(sizeof(Record));
 
-    //Todo add new tuple.
-
-    printf("Schema: %s\n",serializeSchema(rel->schema));
-    printf("insert record %s\n",serializeRecord(record,rel->schema));
-
-    int totalPages = ((BM_BufferPool*)rel->mgmtData)->numPages;
-    int recordSize = getRecordSize(rel->schema);
-    int recordsPerPage = PAGE_SIZE/recordSize;
-
-    int result = RC_OK;
+    RID rid;
+    rid.page = 1;
+    rid.slot = 0;
 
     //Find the next place of insertion of a record
-    RID searchRid;
-    searchRid.slot=0;
-    searchRid.page=1;
-    Record *record1;
-    result = createRecord(&record1,rel->schema);
-    if(result != RC_OK) return result;
+    while(rid.page > 0 && rid.page < totalPages)
+    {
+        rid.page = rid.page + 1;
+        rid.slot = 0;
 
-    while(record->id.slot < 0 && searchRid.page < totalPages){
-        while(record->id.slot < 0 && searchRid.slot< recordsPerPage){
-
-            if(getRecord(rel,searchRid,record1)!=RC_OK){
-                printf("Found where to locate %d\n",searchRid.slot);
-                record->id.slot=searchRid.slot;
-                record->id.page=searchRid.page;
-            }else{
-                searchRid.slot++;
-            }
-
-        }
-        searchRid.slot=0;
-        searchRid.page++;
+        /*getRecord(rel, rid, r); //obtaining the record from the table
+        //checking for soft delete record in the table space for insertion
+        if(strncmp(r->data, "DELETED_RECORD", 14) == 0)
+            break;*/
     }
 
+
+    r = NULL;
+    free(r); //free the memory of r which was just a temporary allocation
+
+    //mark the page as free page
+    ((RM_RecordMgmt *)rel->mgmtData)->freePages[0] = rid.page;
+
+    //create a page handle
     BM_PageHandle *page = MAKE_PAGE_HANDLE();
+
+    //assign the record, its RID and slot number
+    record->id.page = ((RM_RecordMgmt *)rel->mgmtData)->freePages[0];
+    record->id.slot = 0;
+
+    //Serialize the Record to be inserted
 
     char * serializedRecord = serializeRecord(record, rel->schema);
 
-    result = pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, record->id.page);
-    if(result != RC_OK) return result;
+    //Pin the record page, to mark that it is in use
+    pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, ((RM_RecordMgmt *)rel->mgmtData)->freePages[0]);
 
-    //Move pointer to the slot
-    memset(page->data, '\0',(size_t) recordSize*record->id.slot);
+    //insert the new record data, into the Table i.e. Pages of the PageFile
+    memset(page->data, '\0', strlen(page->data));
     sprintf(page->data, "%s", serializedRecord);
 
-    result = markDirty(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
-    if(result != RC_OK) return result;
+    //mark the page as Dirty Page, as now there is a new record entry on that page
+    markDirty(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
 
+    //Unpin the page as now it has been used
+    unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+    //Force Page to push entire data onto the page
     forcePage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
 
-    result = unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
-    if(result != RC_OK) return result;
+    //printf("record data: %s\n", page->data);
 
-    printf("Inserted\n");
+    free(page);		//free page, avoid memory leaks
 
-    result = freeRecord(record1);
-    if(result != RC_OK) return result;
+    ((RM_RecordMgmt *)rel->mgmtData)->freePages[0] += 1;
+
+    totalPages++;
+    return RC_OK;
+}
+
+/*
+ * This function is used to Delete the Record from the Table
+ * BONUS IMPLEMENTATION - TOMBSTONE IS USED IN DELETION PROCESS
+ */
+RC deleteRecord (RM_TableData *rel, RID id)
+{
+    /*A TOMBSTONE FLAG is set to mark it as a Deleted Record, but actual delete is not done
+     * The Record is Prefixed with DELETED_RECORD string
+     * ex. consider the record to be deleted be
+     * (a:1,b:aaaa,c:45), the serializer store it as [1-0](a:1,b:aaaa,c:45)
+     * deleted will be marked as DELETED RECORD[1-0](a:1,b:aaaa,c:45)
+     */
+
+    char deleteTombStomeFlag[14] = "DELETED_RECORD";	//Tombstone flag
+
+    char *temp = (char*)malloc(sizeof(char*));			//temp memory allocation to preappend the flag
+
+    if(id.page > 0 && id.page <=  totalPages)
+    {
+        BM_PageHandle *page = MAKE_PAGE_HANDLE();
+
+        //Pin page, to mark it in USE
+        pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, id.page);
+
+        //attach the flag to deletedRecord
+        strcpy(temp, deleteTombStomeFlag);
+        strcat(temp, page->data);
+
+        //set pageNum
+        page->pageNum = id.page;
+
+        //copy the new data onto the Page i.e. modify the page->data
+        memset(page->data, '\0', strlen(page->data));
+        sprintf(page->data, "%s", temp);
+
+        //marking the page dirty, as new data has been written, i.e. tombstone data
+        markDirty(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+        //unpin page, after use
+        unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+        //write the new data onto the page, in the pageFile
+        forcePage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
+
+        page = NULL;
+        free(page);		//free page, avoid leaks
+        return RC_OK;
+    }
+    else
+    {
+        return RC_RM_NO_MORE_TUPLES;
+    }
 
     return RC_OK;
 }
 
-extern RC updateRecord (RM_TableData *rel, Record *record){
-//Find the data to be updated
-    int totalPages = ((BM_BufferPool*)rel->mgmtData)->numPages;
-    if(record->id.page > 0 && record->id.page <=  totalPages)
+
+/*
+ * This function is used to update a Record,
+ * updating on a deleted page is not possible
+ */
+RC updateRecord (RM_TableData *rel, Record *record)
+{
+    //Find the data to be updated
+    if(record->id.page > 0 )//&& record->id.page <=  totalPages)
     {
         BM_PageHandle *page = MAKE_PAGE_HANDLE();
 
@@ -259,279 +473,378 @@ extern RC updateRecord (RM_TableData *rel, Record *record){
     }
     else
     {
+
         return RC_RM_NO_MORE_TUPLES;	//return the data to be modfied not found
     }
+
+    return RC_OK;
 }
 
-extern RC getRecord (RM_TableData *rel, RID id, Record *record){
+/*
+ * This function is used to get the Record from the Table
+ * using the RID details
+ */
+RC getRecord(RM_TableData *rel, RID id, Record *record)
+{
 
-    int recordSize = getRecordSize(rel->schema);
-    int result = RC_OK;
 
-    printf("GR\n");
     //find the record in the record table
-    int totalPages = ((BM_BufferPool*)rel->mgmtData)->numPages;
-    if(id.page > 0 && id.page <=  totalPages)
+    if(id.page > 0)// && id.page <=  totalPages)
     {
-        printf("Init getRecord\n");
+
         //make a page handle
         BM_PageHandle *page = MAKE_PAGE_HANDLE();
-        printf("Init pin page\n");
-        //pin page, and mark it for use
-        result = pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, id.page);
-        printf("end pin page\n");
-        if(result != RC_OK) return result;
 
-        printf("GR1 len: %d\n",(int)strlen(page->data));
-        if(strlen(page->data) <= 0){
-            printf("Page data is: \n");
-            return RC_RM_NO_MORE_TUPLES;
-        }
-        printf("GR1.1\n");
+        //pin page, and mark it for use
+        pinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page, id.page);
+
         //temp, to store the record data
-        char *record_data = (char*)malloc(sizeof(char) * strlen(page->data));
-        printf("GR1.2 %d, %d, %d\n",recordSize*id.slot,recordSize,id.slot);
+        char *record_data = (char*)malloc(PAGE_SIZE);
 
         //copy the data
-
-        memset(page->data, '\0',(size_t) recordSize*id.slot);
-        printf("GR1.3\n");
-        strncpy(record_data,page->data,(size_t) recordSize);
-        printf("Record Stored: %s\n",record_data);
-
-        //store the record data and id
-        record->id = id;
-        printf("GR2 ,%s\n",record_data);
-
+        strcpy(record_data,page->data);
         //deSerialze the data
-        result = deserializeRecord(record_data,rel->schema,record);
-        if(result != RC_OK) return result;
-        //free(record_data);
-
-        printf("GR2.1\n");
-        //unpin the page, after fetching the record
-        result = unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
-        if(result != RC_OK) return result;
-
-        printf("GR2.2\n");
-        //return the new data
-
-        printf("GR3\n");
-        //printf("Record Data in getRecord: %s\n",record->data);
-
-        //free temp. allocations to avoid memory leaks
-
+        Record *record_temp = deserializeRecord(record_data,rel->schema);
+        record_temp->id.page = id.page;
+        record_temp->id.slot = id.slot;
+        *record = *record_temp;
+        record->id.slot = id.slot;
+        record->id.page = id.page;
+        unpinPage(((RM_RecordMgmt *)rel->mgmtData)->bm, page);
         free(page);
-        printf("GR4\n");
         return RC_OK;
     }
-    else		//if record not found return RC_RM_NO_MORE_TUPLES
+    else
     {
+        printf("No more tuples\n");
         return RC_RM_NO_MORE_TUPLES;
     }
-}
 
-// scans
-extern RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond){
-    //Todo
     return RC_OK;
 }
 
-extern RC next (RM_ScanHandle *scan, Record *record){
-    //Todo
+/*
+ * SCANS -  SCANNING THROUGH THE RECORDS WITH A GIVEN CONDITION
+ */
+
+/*
+ * This function is used to initialize the RM_ScanHandle
+ * and all its attributes
+ */
+RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond)
+{
+
+    printf("StartScan\n");
+    //using Scan Handle Structure & init its attributes
+    scan->rel = rel;
+    totalPages = ((RM_RecordMgmt*)rel->mgmtData)->bm->numPages;
+    //Initialize the created Scan Management Structure
+    RM_ScanMgmt *scan_mgmt = (RM_ScanMgmt*)malloc(sizeof(RM_ScanMgmt));
+    scan_mgmt->condn = cond;
+    scan_mgmt->currentRecord = (Record*)malloc(sizeof(Record));
+    scan_mgmt->currentPage = 1;
+    scan_mgmt->currentSlot = 0;
+
+    //store the managememt data
+    scan->mgmtData = scan_mgmt;
+
+    printf("End StartScan\n");
     return RC_OK;
 }
 
-extern RC closeScan (RM_ScanHandle *scan){
-    //Todo
+/*
+ * This fucntion is used along with the startScan function,
+ * call to this method returns the tuples that satisfy the scan condition
+ */
+RC next (RM_ScanHandle *scan, Record *record)
+{
+    Value *result = malloc(sizeof(Value));
+    RID rid;
+
+    //initialize the page and slot number from the data Structure RM_ScanMgmt
+    rid.page = ((RM_ScanMgmt *)scan->mgmtData)->currentPage;
+    rid.slot = ((RM_ScanMgmt *)scan->mgmtData)->currentSlot;
+    //if the scan condition is passed as NULL, return all the tuples from the table
+    if(((RM_ScanMgmt *)scan->mgmtData)->condn == NULL)
+    {
+        //loop until end of the table
+        while(rid.page > 0 && rid.page < totalPages)
+        {
+            //get the record
+            getRecord (scan->rel, rid, ((RM_ScanMgmt *)scan->mgmtData)->currentRecord);
+
+            record->data = ((RM_ScanMgmt *)scan->mgmtData)->currentRecord->data;
+            record->id = ((RM_ScanMgmt *)scan->mgmtData)->currentRecord->id;
+            ((RM_ScanMgmt *)scan->mgmtData)->currentPage = ((RM_ScanMgmt *)scan->mgmtData)->currentPage + 1;
+
+            //assign the new page scan details
+            rid.page = ((RM_ScanMgmt *)scan->mgmtData)->currentPage;
+            rid.slot = ((RM_ScanMgmt *)scan->mgmtData)->currentSlot;
+
+            return RC_OK;
+        }
+    }
+    else	//if specific scan condition is supplied
+    {
+        //loop until end of the entire table, scan for each record
+        while(rid.page > 0 && rid.page < totalPages)
+        {
+            //get record
+            getRecord (scan->rel, rid, ((RM_ScanMgmt *)scan->mgmtData)->currentRecord);
+            //Evaluate the Expression
+            evalExpr (((RM_ScanMgmt *)scan->mgmtData)->currentRecord, scan->rel->schema, ((RM_ScanMgmt *)scan->mgmtData)->condn, &result);
+            //if result is satisfied, i.e. scan returns the attributes needed i.e. Boolean Attrbiute & v.boolV as 1
+            if(result->dt == DT_BOOL && result->v.boolV)
+            {
+                record->data = ((RM_ScanMgmt *)scan->mgmtData)->currentRecord->data;
+                record->id = ((RM_ScanMgmt *)scan->mgmtData)->currentRecord->id;
+                ((RM_ScanMgmt *)scan->mgmtData)->currentPage = ((RM_ScanMgmt *)scan->mgmtData)->currentPage + 1;
+                return RC_OK;
+            }
+            else	//scan the next record, until the record is found
+            {
+                //increment the page to next page
+                ((RM_ScanMgmt *)scan->mgmtData)->currentPage = ((RM_ScanMgmt *)scan->mgmtData)->currentPage + 1;
+
+                //rid as next page id
+                rid.page = ((RM_ScanMgmt *)scan->mgmtData)->currentPage;
+                rid.slot = ((RM_ScanMgmt *)scan->mgmtData)->currentSlot;
+            }
+        }
+    }
+
+    //re-init to point to first page
+    ((RM_ScanMgmt *)scan->mgmtData)->currentPage = 1;
+
+    //if all records scanned return no more tuples found, i.e. scan is completed
+    return RC_RM_NO_MORE_TUPLES;
+}
+
+/*
+ * This function is used to indicate the record manager
+ * that all the resources can now be cleaned up
+ */
+RC closeScan (RM_ScanHandle *scan)
+{
+    //Make all the allocations, NULL and free them
+
+    ((RM_ScanMgmt *)scan->mgmtData)->currentRecord = NULL;
+    free(((RM_ScanMgmt *)scan->mgmtData)->currentRecord);
+
+    scan->mgmtData = NULL;
+    free(scan->mgmtData);
+
+    scan = NULL;
+    free(scan);
+
     return RC_OK;
 }
 
-// dealing with schemas
-int getRecordSize (Schema *schema){
-    //Todo Change
-    int i=0;
+/*
+ * DEALING WITH SCHEMAS
+ */
 
-    //10 size for position
-    int recordSize = 10;
+/*
+ * This function is used to get the entire Size of the record
+ */
+int getRecordSize(Schema *schema)
+{
+    int i, recordSize = 0;
 
     for(i = 0; i < schema->numAttr; i++)
     {
-        if(schema->dataTypes[i] == DT_INT){
+        if(schema->dataTypes[i] == DT_INT)
             recordSize += sizeof(int);
-            //Name plus dots
-            recordSize += (strlen(schema->attrNames[i])+1);
-        }
-
-
-        else if(schema->dataTypes[i] == DT_FLOAT) {
+        else if(schema->dataTypes[i] == DT_FLOAT)
             recordSize += sizeof(float);
-            //Name plus dots
-            recordSize += (strlen(schema->attrNames[i])+1);
-        }
-        else if(schema->dataTypes[i] == DT_BOOL) {
+        else if(schema->dataTypes[i] == DT_BOOL)
             recordSize += sizeof(bool);
-            //Name plus dots
-            recordSize += (strlen(schema->attrNames[i]) + 1);
-        }
-        else{
-            //Name plus dots
-            recordSize += (strlen(schema->attrNames[i])+1);
+        else
             recordSize += schema->typeLength[i];
-        }
-
     }
+
     return recordSize;
 }
-extern Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *typeLength, int keySize, int *keys){
-
-    Schema *schema = (Schema*)malloc(sizeof(Schema));
-
-    schema->numAttr = numAttr;
-    schema->attrNames = attrNames;
-    schema->dataTypes = dataTypes;
-    schema->typeLength = typeLength;
-    schema->keySize = keySize;
-    schema->keyAttrs = keys;
-
-    return schema;
-}
-extern RC freeSchema (Schema *schema){
-    free(schema->attrNames);
-    free(schema->dataTypes);
-    free(schema->keyAttrs);
-    free(schema->typeLength);
-
-    return RC_OK;
-}
-
-// dealing with records and attribute values
-RC createRecord (Record **record, Schema *schema){
-
-    if(*record){
-        printf("-------- Not Null\n");
-        *record = (Record*) malloc (sizeof(Record));
-
-        //No allocated
-        (*record)->id.page=-1;
-        (*record)->id.slot=-1;
-        //Default Size
-        (*record)->data = (char*)malloc(getRecordSize(schema));
-
-        return RC_OK;
-    }else{
-        printf("-------- Null\n");
-        Record *aux = (Record*) malloc(sizeof(Record));
-        printf("-------- Null\n");
-        record = &aux;
-
-        //No allocated
-        (*record)->id.page=-1;
-        (*record)->id.slot=-1;
-        //Default Size
-        (*record)->data = (char*)malloc(getRecordSize(schema));
-
-        return RC_OK;
-    }
-
-}
-
-extern RC freeRecord (Record *record){
-    //Todo
-    printf("FreeRecord\n");
-    //free(record->id.page);
-    //free(record->id.slot);
-    //free(record->data);
-    free(record);
-    return RC_OK;
-}
-
-extern RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
-    //Todo
-    return RC_OK;
-}
-
-extern RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
-    //Todo
-    return RC_OK;
-}
-
-
-///////===========
-
-// dynamic string
-typedef struct VarString {
-    char *buf;
-    int size;
-    int bufsize;
-} VarString;
-
-#define MAKE_VARSTRING(var)				\
-		do {							\
-			var = (VarString *) malloc(sizeof(VarString));	\
-			var->size = 0;					\
-			var->bufsize = 100;					\
-			var->buf = malloc(100);				\
-		} while (0)
-
-#define FREE_VARSTRING(var)			\
-		do {						\
-			free(var->buf);				\
-			free(var);					\
-		} while (0)
-
-#define GET_STRING(result, var)			\
-		do {						\
-			result = malloc((var->size) + 1);		\
-			memcpy(result, var->buf, var->size);	\
-			result[var->size] = '\0';			\
-		} while (0)
-
-#define RETURN_STRING(var)			\
-		do {						\
-			char *resultStr;				\
-			GET_STRING(resultStr, var);			\
-			FREE_VARSTRING(var);			\
-			return resultStr;				\
-		} while (0)
-
-#define ENSURE_SIZE(var,newsize)				\
-		do {								\
-			if (var->bufsize < newsize)					\
-			{								\
-				int newbufsize = var->bufsize;				\
-				while((newbufsize *= 2) < newsize);			\
-				var->buf = realloc(var->buf, newbufsize);			\
-			}								\
-		} while (0)
-
-#define APPEND_STRING(var,string)					\
-		do {									\
-			ENSURE_SIZE(var, var->size + strlen(string));			\
-			memcpy(var->buf + var->size, string, strlen(string));		\
-			var->size += strlen(string);					\
-		} while(0)
-
-#define APPEND(var, ...)			\
-		do {						\
-			char *tmp = malloc(10000);			\
-			sprintf(tmp, __VA_ARGS__);			\
-			APPEND_STRING(var,tmp);			\
-			free(tmp);					\
-		} while(0)
 
 /*
- * Function to deserialize the Schema
+ * SCHEMA CREATION -
+ * This function is used to Create a new Schema
+ * and initialize all the attributes for those schema
  */
-Schema *deserializeSchema(char *serializedSchemaData)
+Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *typeLength, int keySize, int *keys)
+{
+    //allocate memory for Schema to be created
+    Schema *newSchema = (Schema*)malloc(sizeof(Schema));
+
+    //initialize all the attributes for the schema
+    newSchema->numAttr = numAttr;
+    newSchema->attrNames = attrNames;
+    newSchema->dataTypes = dataTypes;
+    newSchema->typeLength = typeLength;
+    newSchema->keySize = keySize;
+    newSchema->keyAttrs = keys;
+
+    return newSchema;
+}
+
+//free the allocated Schema
+RC freeSchema (Schema *schema)
+{
+    free(schema);
+    return RC_OK;
+}
+
+/*
+ * DEALING WITH RECORDS AND ATTRIBUTE VALUES
+ */
+
+/*
+ * Creates a new Record and allocates memmory for record & its data
+ */
+RC createRecord (Record **record, Schema *schema)
+{
+    *record = (Record*)malloc(sizeof(Record));
+    (*record)->data = (char*)calloc(1,getRecordSize(schema));
+    (*record)->id.page=-1;
+    (*record)->id.slot=-1;
+    return RC_OK;
+}
+
+/*
+ * Freeing the record created earlier
+ * the data and the record
+ */
+RC freeRecord (Record *record)
+{
+    //data is free'd first
+    record->data = NULL;
+    free(record->data);
+
+    //free the complete record
+    record = NULL;
+    free(record);
+
+    return RC_OK;
+}
+
+/*
+ * This function is used to get the attribute values of a record
+ */
+RC getAttr (Record *record, Schema *schema, int attrNum, Value **value)
+{
+    //variables for offset
+    int offset;
+    char *attrData;
+
+    *value = (Value*)calloc(1,sizeof(Value));
+
+    //calculate the offset, to get the attribute value from
+    attrOffset(schema, attrNum, &offset);
+    attrData = record->data + offset;
+
+    (*value)->dt =schema->dataTypes[attrNum];
+
+    //switch on the attribute data types
+    switch(schema->dataTypes[attrNum])
+    {
+        case DT_INT:
+        {
+            memcpy(&((*value)->v.intV) ,attrData,sizeof(int));	//get the attribute into value
+        }
+            break;
+
+        case DT_STRING:
+        {
+            char *buf;
+            int len = schema->typeLength[attrNum];
+            buf = (char *) calloc(1,len + 1);
+            strncpy(buf, attrData, len);
+            buf[len] = '\0';
+            (*value)->v.stringV = buf;
+        }
+            break;
+
+        case DT_FLOAT:
+        {
+            memcpy(&((*value)->v.floatV),attrData, sizeof(float));
+        }
+            break;
+
+        case DT_BOOL:
+        {
+            memcpy(&((*value)->v.boolV),attrData ,sizeof(bool));
+        }
+            break;
+
+        default:			//if different data encountered other than INT, FLOAT, BOOL, STRING return (EC 402)
+            return -1;
+    }
+
+    return RC_OK;
+}
+
+/*
+ * This function is used to set the attributes in a record
+ */
+RC setAttr (Record *record, Schema *schema, int attrNum, Value *value)
+{
+    //Modifying rm_serializer serializeAttr
+    int offset;
+    char *attrData;
+
+    //calculate the offset values
+    attrOffset(schema, attrNum, &offset);
+    attrData = record->data + offset;
+
+    //switch on attributes datatype value
+    switch(schema->dataTypes[attrNum])
+    {
+        case DT_INT:
+        {
+            memcpy(attrData,&(value->v.intV) ,sizeof(int));		//copy the newly set attribute value
+        }
+            break;
+
+        case DT_STRING:
+        {
+            char *buf;
+            int len = schema->typeLength[attrNum];
+            buf = (char *) calloc(1,len);
+            buf = value->v.stringV;
+            buf[len] = '\0';			//end the string with '\0'
+
+            memcpy(attrData,buf,len);
+        }
+            break;
+
+        case DT_FLOAT:
+        {
+            memcpy(attrData,&(value->v.floatV), sizeof(float));
+        }
+            break;
+
+        case DT_BOOL:
+        {
+            memcpy(attrData,&(value->v.boolV) ,sizeof(bool));
+        }
+            break;
+
+        default:
+            return -1;
+    }
+    return RC_OK;
+}
+
+
+Schema *
+deserializeSchema(char *serializedSchemaData)
 {
     int i,j;
-    VarString *result;
-    MAKE_VARSTRING(result);
 
     Schema *schema = (Schema*)malloc(sizeof(Schema));
 
     int schemaNumAttr,lastAttr;
+
     char *splitStart = (char*)malloc(sizeof(char));
     char *splitEnd = (char*)malloc(sizeof(char));
     char *splitString = (char*)malloc(sizeof(char));
@@ -549,8 +862,6 @@ Schema *deserializeSchema(char *serializedSchemaData)
     schema->dataTypes = (DataType*)malloc(sizeof(DataType) * schemaNumAttr);
     schema->typeLength = (int*)malloc(sizeof(int) * schemaNumAttr);
 
-    schema->keySize = 0;
-
     splitEnd = strtok(NULL,"(");
 
     lastAttr =  schemaNumAttr-1;
@@ -558,7 +869,6 @@ Schema *deserializeSchema(char *serializedSchemaData)
     //put in the dataTypes and thier datalengths
     for(i=0;i<schemaNumAttr;i++)
     {
-
         splitEnd = strtok(NULL,": ");
 
         schema->attrNames[i] = (char*)malloc(sizeof(char*));
@@ -601,6 +911,7 @@ Schema *deserializeSchema(char *serializedSchemaData)
     }//end for()
 
     //put in the keyAttrs
+
     //check if there are any keys present
     if((splitEnd = strtok(NULL,"("))!=NULL)
     {
@@ -612,7 +923,7 @@ Schema *deserializeSchema(char *serializedSchemaData)
         splitKey = strtok(splitEnd,", ");
 
         //Find out the number of Keys & store the attrValues for those Keys
-        while(splitKey!=NULL && (strlen(splitKey) != 0&& splitKey[0] !='\n'))
+        while(splitKey!=NULL)
         {
             keyAttr[numOfKeys] = (char*)malloc(sizeof(char*));
             strcpy(keyAttr[numOfKeys],splitKey);
@@ -666,18 +977,75 @@ Schema *deserializeSchema(char *serializedSchemaData)
     free(splitString);
     free(splitStart);
     free(splitEnd);
+
     return schema;
 }
 
 /*
  * Deserialize Record - split into tokens
  */
-RC deserializeRecord(char *string, Schema *schema, Record *record)
+Record* deserializeRecord(char *string, Schema *schema)
 {
-    printf("deserializeRecord\n");
-    printf("befour read deserializeRecord\n");
-    scanf("[%d-%d] %s", &record->id.page,&record->id.slot,record->data);
+    int i, lastAttr = schema->numAttr-1;
+    int intVal;
+    float floatVal;
+    bool boolVal;
+    Value *value;
+    Record *record;
+    createRecord(&record,schema);
+    int temp;
+    for (temp = 0; temp< PAGE_SIZE;temp++){
+        printf("%c",string[temp]);
+    }
+    char *splitStart, *splitEnd;
+    splitStart = strtok(string,"(");
+    for(i=0;i< schema->numAttr;i++)
+    {
+        splitEnd = strtok(NULL,":");
+        splitEnd = strtok(NULL,",");
 
-    printf("4\n");
-    return RC_OK;
+
+        switch(schema->dataTypes[i])
+        {
+            case DT_INT:
+               // intVal = strtol(splitEnd, &splitStart, 10);
+
+                if(splitEnd != NULL){
+                    MAKE_VALUE(value,DT_INT,atoi(splitEnd));
+                }else{
+                    MAKE_VALUE(value,DT_INT,0);
+                }
+
+                setAttr(record,schema,i,value);
+
+                break;
+
+            case DT_FLOAT:
+
+                MAKE_VALUE(value,DT_FLOAT,atof(splitEnd));
+                setAttr(record,schema,i,value);
+
+                break;
+
+            case DT_BOOL:
+                boolVal = (splitEnd[0] == 't') ? TRUE: FALSE;
+                MAKE_VALUE(value,DT_BOOL,boolVal);
+                setAttr(record,schema,i,value);
+
+                break;
+
+            case DT_STRING:
+                if(splitEnd != NULL) {
+                    MAKE_STRING_VALUE(value, splitEnd);
+                }else{
+                    MAKE_STRING_VALUE(value, "");
+                }
+                setAttr (record,schema,i,value);
+
+                break;
+        }
+
+    }
+    //free(value);
+    return record;
 }
