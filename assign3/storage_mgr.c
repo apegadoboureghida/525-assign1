@@ -82,8 +82,6 @@ RC openPageFile(char *fileName, SM_FileHandle *fHandle) {
     //r+ opening in the beginning
     FILE *fp=fopen(fileName, "r+");
     if(fp == NULL){
-        printf("Hola!! - %s\n",fileName);
-
         return RC_FILE_NOT_FOUND;
     }
     //totalNumPages

@@ -374,15 +374,19 @@ extern RC freeSchema (Schema *schema)
 }
 
 
-extern RC createRecord (Record **record, Schema *schema)
-{
-    *record = (Record*) calloc(1,sizeof(Record));
+extern RC createRecord (Record **record, Schema *schema) {
+    if (schema) {
+        *record = (Record *) calloc(1, sizeof(Record));
 
-    (*record)->data = (char*)calloc(1,getRecordSize(schema));
-    (*record)->id.page=-1;
-    (*record)->id.slot=-1;
+        (*record)->data = (char *) calloc(1, getRecordSize(schema));
+        (*record)->id.page = -1;
+        (*record)->id.slot = -1;
 
-    return RC_OK;
+        return RC_OK;
+
+    }
+
+    return RC_RM_UNKOWN_DATATYPE;
 }
 
 
