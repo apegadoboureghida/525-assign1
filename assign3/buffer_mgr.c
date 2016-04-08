@@ -85,6 +85,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, const
         mgmtData->lruStat[y]= 0;
         mgmtData->readBuff=0;
     }
+    closePageFile(fHandle);
 
     return RC_OK;
 }
@@ -165,7 +166,7 @@ RC forceFlushPool(BM_BufferPool *const bm) {
         }
     }
 
-    free(fHandle);
+    closePageFile(fHandle);
 
     return RC_OK;
 }
@@ -286,7 +287,8 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
     MgmtData *data = bm->mgmtData;
     data->writeIO++;
 
-    free(fHandle);
+    closePageFile(fHandle);
+
     return RC_OK;
 }
 /*
@@ -313,6 +315,7 @@ RC forcePage(BM_BufferPool *const bm, BM_PageHandle *const page) {
  *      02/26/2016  Bill Molchan    Updates
  */
 RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber pageNum) {
+
 
     //Check if it's already on buffer;
     int y= 0;
@@ -352,7 +355,7 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
 
     data->lruStat[position] = ++data->readBuff;
 
-    free(fHandle);
+    closePageFile(fHandle);
     return RC_OK;
 }
 
@@ -381,10 +384,8 @@ RC pinPage(BM_BufferPool *const bm, BM_PageHandle *const page, const PageNumber 
  *      02/26/2016  Pratishtha      Updates    
  */
 
-//TODO
 int freeFrame(int pageNum,BM_BufferPool *const bm){
     //Decide position
-    //Todo: Now always return zero
     MgmtData *data = bm->mgmtData;
     int position = -1;
     int x =0;

@@ -13,8 +13,8 @@ typedef struct RM_ScanHandle
 } RM_ScanHandle;
 
 Schema *deserializeSchema(char *serializedSchemaData);
-Record *deserializeRecord(char *desiralize_record_str, Schema *schema);
-// table and manager
+RC deserializeRecord(char *string, Schema *schema, Record ** record);// table and manager
+
 extern RC initRecordManager (void *mgmtData);
 extern RC shutdownRecordManager ();
 extern RC createTable (char *name, Schema *schema);
