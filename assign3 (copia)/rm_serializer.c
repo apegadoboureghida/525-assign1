@@ -8,9 +8,9 @@
 
 // dynamic string
 typedef struct VarString {
-  char *buf;
-  int size;
-  int bufsize;
+    char *buf;
+    int size;
+    int bufsize;
 } VarString;
 
 #define MAKE_VARSTRING(var)				\
@@ -76,14 +76,14 @@ serializeTableInfo(RM_TableData *rel)
 {
   VarString *result;
   MAKE_VARSTRING(result);
-  
+
   APPEND(result, "TABLE <%s> with <%i> tuples:\n", rel->name, getNumTuples(rel));
   APPEND_STRING(result, serializeSchema(rel->schema));
-  
-  RETURN_STRING(result);  
+
+  RETURN_STRING(result);
 }
 
-char * 
+char *
 serializeTableContent(RM_TableData *rel)
 {
   int i;
@@ -96,19 +96,19 @@ serializeTableContent(RM_TableData *rel)
     APPEND(result, "%s%s", (i != 0) ? ", " : "", rel->schema->attrNames[i]);
 
   startScan(rel, sc, NULL);
-  
-  while(next(sc, r) != RC_RM_NO_MORE_TUPLES) 
-    {
+
+  while(next(sc, r) != RC_RM_NO_MORE_TUPLES)
+  {
     APPEND_STRING(result,serializeRecord(r, rel->schema));
     APPEND_STRING(result,"\n");
-    }
+  }
   closeScan(sc);
 
   RETURN_STRING(result);
 }
 
 
-char * 
+char *
 serializeSchema(Schema *schema)
 {
   int i;
@@ -118,105 +118,105 @@ serializeSchema(Schema *schema)
   APPEND(result, "Schema with <%i> attributes (", schema->numAttr);
 
   for(i = 0; i < schema->numAttr; i++)
+  {
+    APPEND(result,"%s%s: ", (i != 0) ? ", ": "", schema->attrNames[i]);
+    switch (schema->dataTypes[i])
     {
-      APPEND(result,"%s%s: ", (i != 0) ? ", ": "", schema->attrNames[i]);
-      switch (schema->dataTypes[i])
-	{
-	case DT_INT:
-	  APPEND_STRING(result, "INT");
-	  break;
-	case DT_FLOAT:
-	  APPEND_STRING(result, "FLOAT");
-	  break;
-	case DT_STRING:
-	  APPEND(result,"STRING[%i]", schema->typeLength[i]);
-	  break;
-	case DT_BOOL:
-	  APPEND_STRING(result,"BOOL");
-	  break;
-	}
+      case DT_INT:
+        APPEND_STRING(result, "INT");
+            break;
+      case DT_FLOAT:
+        APPEND_STRING(result, "FLOAT");
+            break;
+      case DT_STRING:
+        APPEND(result,"STRING[%i]", schema->typeLength[i]);
+            break;
+      case DT_BOOL:
+        APPEND_STRING(result,"BOOL");
+            break;
     }
+  }
   APPEND_STRING(result,")");
 
   APPEND_STRING(result," with keys: (");
 
   for(i = 0; i < schema->keySize; i++)
-    APPEND(result, "%s%s", ((i != 0) ? ", ": ""), schema->attrNames[schema->keyAttrs[i]]); 
+    APPEND(result, "%s%s", ((i != 0) ? ", ": ""), schema->attrNames[schema->keyAttrs[i]]);
 
   APPEND_STRING(result,")\n");
 
   RETURN_STRING(result);
 }
 
-char * 
+char *
 serializeRecord(Record *record, Schema *schema)
 {
   VarString *result;
   MAKE_VARSTRING(result);
   int i;
-  
+
   APPEND(result, "[%i-%i] (", record->id.page, record->id.slot);
 
   for(i = 0; i < schema->numAttr; i++)
-    {
-      APPEND_STRING(result, serializeAttr (record, schema, i));
-      APPEND(result, "%s", (schema->numAttr == 0) ? "" : ",");
-    }
-  
+  {
+    APPEND_STRING(result, serializeAttr (record, schema, i));
+    APPEND(result, "%s", (schema->numAttr == 0) ? "" : ",");
+  }
+
   APPEND_STRING(result, ")");
 
   RETURN_STRING(result);
 }
 
-char * 
+char *
 serializeAttr(Record *record, Schema *schema, int attrNum)
 {
   int offset;
   char *attrData;
   VarString *result;
   MAKE_VARSTRING(result);
-  
+
   attrOffset(schema, attrNum, &offset);
   attrData = record->data + offset;
 
   switch(schema->dataTypes[attrNum])
-    {
+  {
     case DT_INT:
-      {
-	int val = 0;
-	memcpy(&val,attrData, sizeof(int));
-	APPEND(result, "%s:%i", schema->attrNames[attrNum], val);
-      }
-      break;
+    {
+      int val = 0;
+      memcpy(&val,attrData, sizeof(int));
+      APPEND(result, "%s:%i", schema->attrNames[attrNum], val);
+    }
+          break;
     case DT_STRING:
-      {
-	char *buf;
-	int len = schema->typeLength[attrNum];
-	buf = (char *) malloc(len + 1);
-	strncpy(buf, attrData, len);
-	buf[len] = '\0';
-	
-	APPEND(result, "%s:%s", schema->attrNames[attrNum], buf);
-	free(buf);
-      }
-      break;
+    {
+      char *buf;
+      int len = schema->typeLength[attrNum];
+      buf = (char *) malloc(len + 1);
+      strncpy(buf, attrData, len);
+      buf[len] = '\0';
+
+      APPEND(result, "%s:%s", schema->attrNames[attrNum], buf);
+      free(buf);
+    }
+          break;
     case DT_FLOAT:
-      {
-	float val;
-	memcpy(&val,attrData, sizeof(float));
-	APPEND(result, "%s:%f", schema->attrNames[attrNum], val);
-      }
-      break;
+    {
+      float val;
+      memcpy(&val,attrData, sizeof(float));
+      APPEND(result, "%s:%f", schema->attrNames[attrNum], val);
+    }
+          break;
     case DT_BOOL:
-      {
-	bool val;
-	memcpy(&val,attrData, sizeof(bool));
-	APPEND(result, "%s:%s", schema->attrNames[attrNum], val ? "TRUE" : "FALSE");
-      }
-      break;
+    {
+      bool val;
+      memcpy(&val,attrData, sizeof(bool));
+      APPEND(result, "%s:%s", schema->attrNames[attrNum], val ? "TRUE" : "FALSE");
+    }
+          break;
     default:
       return "NO SERIALIZER FOR DATATYPE";
-    }
+  }
 
   RETURN_STRING(result);
 }
@@ -226,22 +226,22 @@ serializeValue(Value *val)
 {
   VarString *result;
   MAKE_VARSTRING(result);
-  
+
   switch(val->dt)
-    {
+  {
     case DT_INT:
       APPEND(result,"%i",val->v.intV);
-      break;
+          break;
     case DT_FLOAT:
       APPEND(result,"%f", val->v.floatV);
-      break;
+          break;
     case DT_STRING:
       APPEND(result,"%s", val->v.stringV);
-      break;
+          break;
     case DT_BOOL:
       APPEND_STRING(result, ((val->v.boolV) ? "true" : "false"));
-      break;
-    }
+          break;
+  }
 
   RETURN_STRING(result);
 }
@@ -250,59 +250,59 @@ Value *
 stringToValue(char *val)
 {
   Value *result = (Value *) malloc(sizeof(Value));
-  
+
   switch(val[0])
-    {
+  {
     case 'i':
       result->dt = DT_INT;
-      result->v.intV = atoi(val + 1);
-      break;
+          result->v.intV = atoi(val + 1);
+          break;
     case 'f':
       result->dt = DT_FLOAT;
-      result->v.floatV = atof(val + 1);
-      break;
+          result->v.floatV = atof(val + 1);
+          break;
     case 's':
       result->dt = DT_STRING;
-      result->v.stringV = malloc(strlen(val));
-      strcpy(result->v.stringV, val + 1);
-      break;
+          result->v.stringV = malloc(strlen(val));
+          strcpy(result->v.stringV, val + 1);
+          break;
     case 'b':
       result->dt = DT_BOOL;
-      result->v.boolV = (val[1] == 't') ? TRUE : FALSE;
-      break;
+          result->v.boolV = (val[1] == 't') ? TRUE : FALSE;
+          break;
     default:
       result->dt = DT_INT;
-      result->v.intV = -1;
-      break;
-    }
-  
+          result->v.intV = -1;
+          break;
+  }
+
   return result;
 }
 
 
-RC 
+RC
 attrOffset (Schema *schema, int attrNum, int *result)
 {
   int offset = 0;
   int attrPos = 0;
-  
+
   for(attrPos = 0; attrPos < attrNum; attrPos++)
     switch (schema->dataTypes[attrPos])
-      {
+    {
       case DT_STRING:
-	offset += schema->typeLength[attrPos];
-	break;
+        offset += schema->typeLength[attrPos];
+            break;
       case DT_INT:
-	offset += sizeof(int);
-	break;
+        offset += sizeof(int);
+            break;
       case DT_FLOAT:
-	offset += sizeof(float);
-	break;
+        offset += sizeof(float);
+            break;
       case DT_BOOL:
-	offset += sizeof(bool);
-	break;
-      }
-  
+        offset += sizeof(bool);
+            break;
+    }
+
   *result = offset;
   return RC_OK;
 }

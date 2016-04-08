@@ -163,6 +163,18 @@ extern RC insertRecord (RM_TableData *rel, Record *record)
         record->id.page = totalPages;
     }
 
+    if(rid.page == totalPages){
+        existSoftDeleted = false;
+    }
+    RM_ScanHandle scan;
+    startScan(rel,&scan,NULL);
+
+    Record recordAux;
+    while(next(&scan,&recordAux)==RC_OK){
+
+    }
+    printf("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+
     record->id.slot = rid.slot;
     RC resultSig;
     resultSig = pinPage((BM_BufferPool *)rel->mgmtData, page,record->id.page);
