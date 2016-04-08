@@ -1,6 +1,4 @@
-//
-// Created by drow on 7/04/16.
-//
+
 #include <stdlib.h>
 #include "record_mgr.h"
 #include "string.h"
