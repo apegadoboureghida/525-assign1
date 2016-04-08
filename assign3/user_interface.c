@@ -40,9 +40,6 @@ main (void)
     }while(0);
 }
 
-void insertRecordUI(){
-
-}
 
 Schema *
 createSchemaUI ()
